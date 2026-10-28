@@ -8,6 +8,7 @@ export function CampusProvider({ children }) {
   const [waterData, setWaterData] = useState(null);
   const [wasteData, setWasteData] = useState(null);
   const [facilities, setFacilities] = useState([]);
+  const [blocks, setBlocks] = useState([]);
   const [anomalies, setAnomalies] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [actions, setActions] = useState([]);
@@ -24,7 +25,10 @@ export function CampusProvider({ children }) {
     solarDiscrepancyAuditFlag: true
   });
 
-  const [selectedFacility, setSelectedFacility] = useState("all");
+  // Global Block & Role Selection
+  const [selectedBlockId, setSelectedBlockId] = useState("all");
+  const [userRole, setUserRole] = useState("SUSTAINABILITY_ADMIN"); // SUSTAINABILITY_ADMIN | BLOCK_MANAGER
+  const [userBlockId, setUserBlockId] = useState("CSE"); // Default block when in BLOCK_MANAGER role
   const [isLoading, setIsLoading] = useState(true);
   const [toasts, setToasts] = useState([]);
 
@@ -41,6 +45,25 @@ export function CampusProvider({ children }) {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
+  // Auth Header Helper
+  const getAuthHeaders = useCallback(() => {
+    return {
+      "x-user-role": userRole,
+      "x-block-id": userRole === "BLOCK_MANAGER" ? userBlockId : ""
+    };
+  }, [userRole, userBlockId]);
+
+  // Fetch Blocks
+  const fetchBlocks = useCallback(async () => {
+    try {
+      const res = await fetch("/api/blocks");
+      const json = await res.json();
+      if (json.success) setBlocks(json.data);
+    } catch (err) {
+      console.error("Error fetching blocks:", err);
+    }
+  }, []);
+
   // Fetch Overview
   const fetchOverview = useCallback(async () => {
     try {
@@ -55,38 +78,41 @@ export function CampusProvider({ children }) {
     }
   }, []);
 
-  // Fetch Solar
+  // Fetch Solar (supports ?blockId=)
   const fetchSolar = useCallback(async () => {
     try {
-      const res = await fetch("/api/solar");
+      const query = selectedBlockId !== "all" ? `?blockId=${selectedBlockId}` : "";
+      const res = await fetch(`/api/solar${query}`);
       const json = await res.json();
       if (json.success) setSolarData(json.data);
     } catch (err) {
       console.error("Error fetching solar:", err);
     }
-  }, []);
+  }, [selectedBlockId]);
 
-  // Fetch Water
+  // Fetch Water (supports ?blockId=)
   const fetchWater = useCallback(async () => {
     try {
-      const res = await fetch("/api/water");
+      const query = selectedBlockId !== "all" ? `?blockId=${selectedBlockId}` : "";
+      const res = await fetch(`/api/water${query}`);
       const json = await res.json();
       if (json.success) setWaterData(json.data);
     } catch (err) {
       console.error("Error fetching water:", err);
     }
-  }, []);
+  }, [selectedBlockId]);
 
-  // Fetch Waste
+  // Fetch Waste (supports ?blockId=)
   const fetchWaste = useCallback(async () => {
     try {
-      const res = await fetch("/api/waste");
+      const query = selectedBlockId !== "all" ? `?blockId=${selectedBlockId}` : "";
+      const res = await fetch(`/api/waste${query}`);
       const json = await res.json();
       if (json.success) setWasteData(json.data);
     } catch (err) {
       console.error("Error fetching waste:", err);
     }
-  }, []);
+  }, [selectedBlockId]);
 
   // Fetch Facilities
   const fetchFacilities = useCallback(async () => {
@@ -99,49 +125,48 @@ export function CampusProvider({ children }) {
     }
   }, []);
 
-  // Fetch Inefficiencies
-  const fetchInefficiencies = useCallback(async (filters = {}) => {
+  // Fetch Inefficiencies (supports ?blockId=)
+  const fetchInefficiencies = useCallback(async () => {
     try {
-      let query = new URLSearchParams();
-      if (selectedFacility !== "all") query.append("facilityId", selectedFacility);
-      if (filters.resourceType && filters.resourceType !== "all") query.append("resourceType", filters.resourceType);
-      if (filters.severity && filters.severity !== "all") query.append("severity", filters.severity);
-
-      const res = await fetch(`/api/inefficiencies?${query.toString()}`);
+      const query = selectedBlockId !== "all" ? `?blockId=${selectedBlockId}` : "";
+      const res = await fetch(`/api/anomalies${query}`);
       const json = await res.json();
       if (json.success) setAnomalies(json.data);
     } catch (err) {
-      console.error("Error fetching inefficiencies:", err);
+      console.error("Error fetching anomalies:", err);
     }
-  }, [selectedFacility]);
+  }, [selectedBlockId]);
 
-  // Fetch Recommendations
+  // Fetch Recommendations (supports ?blockId=)
   const fetchRecommendations = useCallback(async () => {
     try {
-      const res = await fetch("/api/recommendations");
+      const query = selectedBlockId !== "all" ? `?blockId=${selectedBlockId}` : "";
+      const res = await fetch(`/api/recommendations${query}`);
       const json = await res.json();
       if (json.success) setRecommendations(json.data);
     } catch (err) {
       console.error("Error fetching recommendations:", err);
     }
-  }, []);
+  }, [selectedBlockId]);
 
-  // Fetch Actions
+  // Fetch Actions (supports ?blockId=)
   const fetchActions = useCallback(async () => {
     try {
-      const res = await fetch("/api/actions");
+      const query = selectedBlockId !== "all" ? `?blockId=${selectedBlockId}` : "";
+      const res = await fetch(`/api/actions${query}`);
       const json = await res.json();
       if (json.success) setActions(json.data);
     } catch (err) {
       console.error("Error fetching actions:", err);
     }
-  }, []);
+  }, [selectedBlockId]);
 
-  // Load All
+  // Load All Data
   const loadAll = useCallback(async () => {
     setIsLoading(true);
     try {
       await Promise.all([
+        fetchBlocks(),
         fetchOverview(),
         fetchSolar(),
         fetchWater(),
@@ -156,7 +181,7 @@ export function CampusProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  }, [fetchOverview, fetchSolar, fetchWater, fetchWaste, fetchFacilities, fetchInefficiencies, fetchRecommendations, fetchActions]);
+  }, [fetchBlocks, fetchOverview, fetchSolar, fetchWater, fetchWaste, fetchFacilities, fetchInefficiencies, fetchRecommendations, fetchActions]);
 
   useEffect(() => {
     loadAll();
@@ -167,7 +192,7 @@ export function CampusProvider({ children }) {
     try {
       const res = await fetch("/api/settings", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify(updates)
       });
       const json = await res.json();
@@ -178,133 +203,112 @@ export function CampusProvider({ children }) {
         return true;
       }
     } catch (err) {
-      showToast("Error updating settings.", "error");
+      console.error("Error updating settings:", err);
+      showToast("Failed to update settings.", "error");
+      return false;
     }
-    return false;
   };
 
-  // Create Action
+  // Create Action (Block Aware & RBAC protected)
   const createAction = async (actionData) => {
     try {
-      const res = await fetch("/api/actions", {
+      const blockId = actionData.blockId || (selectedBlockId !== "all" ? selectedBlockId : "ADMIN");
+      const res = await fetch(`/api/blocks/${blockId}/actions`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify(actionData)
       });
       const json = await res.json();
       if (json.success) {
-        showToast(`Action "${json.data.title}" initialized!`, "success");
-        await Promise.all([fetchActions(), fetchOverview()]);
+        showToast(json.message || "Action created successfully!", "success");
+        await fetchActions();
+        await fetchOverview();
+        await fetchBlocks();
         return json.data;
+      } else {
+        showToast(json.error || json.message || "Failed to create action.", "error");
+        return null;
       }
     } catch (err) {
-      showToast("Error creating action.", "error");
+      console.error("Error creating action:", err);
+      showToast("Network error creating action.", "error");
+      return null;
     }
-    return null;
   };
 
   // Update Action
   const updateAction = async (id, updates) => {
     try {
       const res = await fetch(`/api/actions/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify(updates)
       });
       const json = await res.json();
       if (json.success) {
-        showToast("Action status updated.", "success");
-        await Promise.all([fetchActions(), fetchOverview()]);
-        return json.data;
-      }
-    } catch (err) {
-      showToast("Error updating action.", "error");
-    }
-    return null;
-  };
-
-  // Delete Action
-  const deleteAction = async (id) => {
-    try {
-      const res = await fetch(`/api/actions/${id}`, { method: "DELETE" });
-      const json = await res.json();
-      if (json.success) {
-        showToast("Action deleted.", "info");
-        await Promise.all([fetchActions(), fetchOverview()]);
+        showToast("Tracked action status updated!", "success");
+        await fetchActions();
+        await fetchOverview();
+        await fetchBlocks();
         return true;
       }
     } catch (err) {
-      showToast("Error deleting action.", "error");
+      console.error("Error updating action:", err);
+      showToast("Failed to update action.", "error");
+      return false;
     }
-    return false;
   };
 
-  // Manual Entry Ingestion
-  const addManualEntry = async (entryData) => {
+  // Reset to Clean Demo Data
+  const resetToSeedData = async () => {
     try {
-      const res = await fetch("/api/manual-entry", {
+      const res = await fetch("/api/reset-data", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(entryData)
+        headers: getAuthHeaders()
       });
       const json = await res.json();
       if (json.success) {
         showToast(json.message, "success");
         await loadAll();
-        return json.data;
-      }
-    } catch (err) {
-      showToast("Error logging manual reading.", "error");
-    }
-    return null;
-  };
-
-  // Reset to Demo
-  const resetToDemo = async () => {
-    try {
-      const res = await fetch("/api/reset-data", { method: "POST" });
-      const json = await res.json();
-      if (json.success) {
-        showToast("Presidency University calibrated benchmark restored.", "success");
-        await loadAll();
         return true;
       }
     } catch (err) {
-      showToast("Error restoring benchmark.", "error");
+      console.error("Error resetting data:", err);
+      showToast("Failed to reset telemetry.", "error");
+      return false;
     }
-    return false;
   };
 
   return (
     <CampusContext.Provider
       value={{
         overviewData,
-        dashboardData: overviewData,
         solarData,
         waterData,
         wasteData,
-        facilities: facilities || [],
-        buildings: facilities || [],
-        anomalies: anomalies || [],
-        recommendations: recommendations || [],
-        actions: actions || [],
+        facilities,
+        blocks,
+        anomalies,
+        recommendations,
+        actions,
         settings,
-        selectedFacility: selectedFacility || "all",
-        selectedBuilding: selectedFacility || "all",
-        setSelectedFacility,
-        setSelectedBuilding: setSelectedFacility,
+        selectedBlockId,
+        setSelectedBlockId,
+        userRole,
+        setUserRole,
+        userBlockId,
+        setUserBlockId,
         isLoading,
         toasts,
         showToast,
         removeToast,
-        loadAll,
         updateSettings,
         createAction,
         updateAction,
-        deleteAction,
-        addManualEntry,
-        resetToDemo,
-        fetchInefficiencies
+        resetToSeedData,
+        fetchBlocks,
+        refreshAll: loadAll,
+        getAuthHeaders
       }}
     >
       {children}

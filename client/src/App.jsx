@@ -6,6 +6,12 @@ import { Sidebar } from "./components/Sidebar";
 import { ToastContainer } from "./components/Toast";
 
 import { OverviewPage } from "./pages/OverviewPage";
+import { BlockExplorerPage } from "./pages/BlockExplorerPage";
+import { CampusMapPage } from "./pages/CampusMapPage";
+import { BlockDetailPage } from "./pages/BlockDetailPage";
+import { BlockComparePage } from "./pages/BlockComparePage";
+import { LeaderboardPage } from "./pages/LeaderboardPage";
+
 import { SolarIntelligencePage } from "./pages/SolarIntelligencePage";
 import { WaterIntelligencePage } from "./pages/WaterIntelligencePage";
 import { WasteIntelligencePage } from "./pages/WasteIntelligencePage";
@@ -18,7 +24,13 @@ import { ImpactVerificationPage } from "./pages/ImpactVerificationPage";
 import { DataManagementPage } from "./pages/DataManagementPage";
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState("overview");
+  const [currentTab, setCurrentTab] = useState("blocks-explorer");
+  const [selectedBlockId, setSelectedBlockId] = useState("CSE");
+
+  const handleOpenBlockDetail = (id) => {
+    setSelectedBlockId(id);
+    setCurrentTab("block-detail");
+  };
 
   return (
     <ErrorBoundary>
@@ -34,7 +46,37 @@ export default function App() {
 
             {/* Dynamic Page Content */}
             <main className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full overflow-y-auto">
-              {currentTab === "overview" && <OverviewPage onNavigateTab={setCurrentTab} />}
+              {/* Block Intelligence Group */}
+              {currentTab === "blocks-explorer" && (
+                <BlockExplorerPage
+                  onSelectBlock={handleOpenBlockDetail}
+                  onNavigateTab={setCurrentTab}
+                />
+              )}
+              {currentTab === "blocks-map" && (
+                <CampusMapPage onSelectBlock={handleOpenBlockDetail} />
+              )}
+              {currentTab === "blocks-compare" && (
+                <BlockComparePage onSelectBlock={handleOpenBlockDetail} />
+              )}
+              {currentTab === "blocks-leaderboard" && (
+                <LeaderboardPage onSelectBlock={handleOpenBlockDetail} />
+              )}
+              {currentTab === "block-detail" && (
+                <BlockDetailPage
+                  blockId={selectedBlockId}
+                  onBack={() => setCurrentTab("blocks-explorer")}
+                  onNavigateTab={setCurrentTab}
+                />
+              )}
+
+              {/* Campus Resource Intelligence Group */}
+              {currentTab === "overview" && (
+                <OverviewPage
+                  onNavigateTab={setCurrentTab}
+                  onSelectBlock={handleOpenBlockDetail}
+                />
+              )}
               {currentTab === "solar" && <SolarIntelligencePage onNavigateTab={setCurrentTab} />}
               {currentTab === "water" && <WaterIntelligencePage onNavigateTab={setCurrentTab} />}
               {currentTab === "waste" && <WasteIntelligencePage onNavigateTab={setCurrentTab} />}

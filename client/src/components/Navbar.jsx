@@ -8,6 +8,8 @@ import {
   Sun, 
   Leaf, 
   MapPin, 
+  UserCheck,
+  Shield,
   ChevronDown 
 } from "lucide-react";
 import { useCampus } from "../context/CampusContext";
@@ -16,11 +18,15 @@ import { DiscrepancyModal } from "./DiscrepancyModal";
 
 export function Navbar() {
   const { 
-    facilities, 
-    selectedFacility, 
-    setSelectedFacility, 
+    blocks, 
+    selectedBlockId, 
+    setSelectedBlockId, 
+    userRole, 
+    setUserRole, 
+    userBlockId, 
+    setUserBlockId,
     settings, 
-    resetToDemo 
+    resetToSeedData 
   } = useCampus();
 
   const [isTariffModalOpen, setIsTariffModalOpen] = useState(false);
@@ -28,9 +34,9 @@ export function Navbar() {
   const [isResetting, setIsResetting] = useState(false);
 
   const handleReset = async () => {
-    if (window.confirm("Restore Presidency University calibrated benchmark dataset (800 kWh/day solar, 300 kL STP, 120-150 kg waste)?")) {
+    if (window.confirm("Restore Presidency University calibrated benchmark dataset (800 kWh/day solar, 300 kL STP, 120-150 kg waste across all 12 blocks)?")) {
       setIsResetting(true);
-      await resetToDemo();
+      await resetToSeedData();
       setIsResetting(false);
     }
   };
@@ -63,7 +69,7 @@ export function Navbar() {
 
           {/* Controls */}
           <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Solar Savings Discrepancy Flag Badge */}
+            {/* Audit Flag Badge */}
             {settings?.solarDiscrepancyAuditFlag && (
               <button
                 onClick={() => setIsDiscrepancyModalOpen(true)}
@@ -75,20 +81,42 @@ export function Navbar() {
               </button>
             )}
 
-            {/* Facility Selector */}
+            {/* Global Block Scope Selector */}
             <div className="flex items-center gap-1.5 bg-slate-100/90 rounded-xl p-1 border border-slate-200">
               <div className="flex items-center pl-2 text-slate-500">
                 <Building2 className="w-3.5 h-3.5 text-emerald-600" />
               </div>
               <select
-                value={selectedFacility}
-                onChange={(e) => setSelectedFacility(e.target.value)}
+                value={selectedBlockId}
+                onChange={(e) => setSelectedBlockId(e.target.value)}
                 className="bg-transparent border-none text-xs font-semibold text-slate-800 pr-7 py-1 focus:ring-0 cursor-pointer"
               >
-                <option value="all">Whole Campus (All Facilities)</option>
-                {facilities.map((f) => (
-                  <option key={f.id} value={f.id}>{f.name}</option>
+                <option value="all">All Campus (12 Blocks Aggregate)</option>
+                {blocks.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.shortName || b.name} ({b.category})
+                  </option>
                 ))}
+              </select>
+            </div>
+
+            {/* Demo Role Switcher */}
+            <div className="flex items-center gap-1 bg-slate-100/90 rounded-xl p-1 border border-slate-200">
+              <Shield className="w-3.5 h-3.5 ml-1.5 text-indigo-600" />
+              <select
+                value={userRole}
+                onChange={(e) => {
+                  const newRole = e.target.value;
+                  setUserRole(newRole);
+                  if (newRole === "BLOCK_MANAGER" && selectedBlockId === "all") {
+                    setSelectedBlockId(userBlockId || "CSE");
+                  }
+                }}
+                className="bg-transparent border-none text-xs font-semibold text-indigo-900 pr-6 py-1 focus:ring-0 cursor-pointer"
+                title="Toggle between Sustainability Admin (all blocks) and Block Manager (own block)"
+              >
+                <option value="SUSTAINABILITY_ADMIN">Role: Sustainability Admin</option>
+                <option value="BLOCK_MANAGER">Role: Block Manager (CSE)</option>
               </select>
             </div>
 
@@ -104,7 +132,7 @@ export function Navbar() {
               <span className="text-[10px] px-1.5 py-0.2 bg-emerald-200/60 rounded text-emerald-900 font-bold">Edit</span>
             </button>
 
-            {/* Reset Demo */}
+            {/* Reset Demo Telemetry */}
             <button
               onClick={handleReset}
               disabled={isResetting}

@@ -1,8 +1,22 @@
-/**
- * Official Campus Profile: Presidency University, Bengaluru, Karnataka, India
- * Location: Itgalpur, Rajanakunte, Yelahanka, Bengaluru, Karnataka 560064
- * Reference: https://presidencyuniversity.in/
- */
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const blocksConfigRaw = fs.readFileSync(path.join(__dirname, "blocks.config.json"), "utf-8");
+export const BLOCKS_CONFIG = JSON.parse(blocksConfigRaw);
+
+export function getBlockById(id) {
+  if (!id) return null;
+  const targetId = id.toUpperCase();
+  return BLOCKS_CONFIG.find(b => b.id.toUpperCase() === targetId) || null;
+}
+
+export function getAllBlockIds() {
+  return BLOCKS_CONFIG.map(b => b.id);
+}
 
 export const PRESIDENCY_CAMPUS_META = {
   institutionName: "Presidency University",

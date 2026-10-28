@@ -134,43 +134,126 @@ export function Navbar({ onNavigateTab }) {
             <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500" />
           </button>
 
-          {/* User Profile / Role Indicator */}
+          {/* Authority / Operational Role Selector */}
           <div className="relative">
             <button 
               onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-              className="flex items-center gap-2 pl-2 pr-1.5 py-1 rounded-full hover:bg-slate-50 transition-colors"
+              className="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-full hover:bg-slate-100/80 border border-slate-200/90 transition-all cursor-pointer shadow-2xs"
             >
-              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-slate-800 to-slate-600 text-white flex items-center justify-center font-bold text-xs shadow-2xs">
-                RS
+              <div className={`w-7 h-7 rounded-full ${userRole === "SUSTAINABILITY_ADMIN" ? "bg-slate-900 text-emerald-400" : "bg-teal-800 text-white"} flex items-center justify-center font-bold text-xs shadow-2xs`}>
+                {userRole === "SUSTAINABILITY_ADMIN" ? (
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <Building2 className="w-4 h-4 text-white" />
+                )}
               </div>
               <div className="hidden lg:block text-left leading-none">
-                <div className="text-xs font-bold text-slate-900">Dr. R. Sharma</div>
-                <div className="text-[10px] text-slate-400 font-medium">Sustainability Officer</div>
+                <div className="text-xs font-black text-slate-900">
+                  {userRole === "SUSTAINABILITY_ADMIN" ? "Sustainability Authority" : `${userBlockId || "CSE"} Facility Authority`}
+                </div>
+                <div className="text-[10px] text-emerald-700 font-bold tracking-tight">
+                  {userRole === "SUSTAINABILITY_ADMIN" ? "Institutional Executive" : "Zonal Block Manager"}
+                </div>
               </div>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
             </button>
 
             {isRoleDropdownOpen && (
-              <div className="absolute top-full right-0 mt-1.5 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs animate-fade-in">
-                <div className="px-3 py-1.5 border-b border-slate-100">
-                  <div className="font-bold text-slate-900">Dr. R. Sharma</div>
-                  <div className="text-[10px] text-slate-400">Head of Campus Sustainability</div>
+              <div className="absolute top-full right-0 mt-1.5 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 text-xs animate-fade-in">
+                <div className="px-3.5 py-2 border-b border-slate-100 bg-slate-50/80 rounded-t-2xl">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Active Operational Authority</div>
+                  <div className="text-xs font-black text-slate-900 mt-0.5 flex items-center justify-between">
+                    <span>{userRole === "SUSTAINABILITY_ADMIN" ? "Sustainability Administrator" : `${userBlockId || "CSE"} Block Manager`}</span>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      {userRole === "SUSTAINABILITY_ADMIN" ? "Full Institution" : "Building Scope"}
+                    </span>
+                  </div>
                 </div>
-                <div className="px-3 py-2 space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Switch Role (RBAC)</span>
+
+                <div className="p-2 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1 block">Switch Operational Authority</span>
+
                   <button
-                    onClick={() => { setUserRole("SUSTAINABILITY_ADMIN"); setIsRoleDropdownOpen(false); }}
-                    className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between ${userRole === "SUSTAINABILITY_ADMIN" ? "bg-emerald-50 text-emerald-800 font-bold" : "hover:bg-slate-50 text-slate-700"}`}
+                    onClick={() => {
+                      setUserRole("SUSTAINABILITY_ADMIN");
+                      setSelectedBlockId("");
+                      setIsRoleDropdownOpen(false);
+                      showToast("Active authority switched: Campus Sustainability Administrator (Full Institution Access)", "success");
+                    }}
+                    className={`w-full text-left p-2.5 rounded-xl flex items-start justify-between transition-all cursor-pointer ${
+                      userRole === "SUSTAINABILITY_ADMIN" 
+                        ? "bg-emerald-50/90 border border-emerald-200 text-emerald-950 font-bold" 
+                        : "hover:bg-slate-50 text-slate-700"
+                    }`}
                   >
-                    <span>Campus Admin (Full)</span>
-                    {userRole === "SUSTAINABILITY_ADMIN" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                    <div>
+                      <div className="text-xs font-black flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Sustainability Administrator</span>
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-normal mt-0.5">
+                        Full Institutional Authority • All 9 Blocks & SCADA
+                      </div>
+                    </div>
+                    {userRole === "SUSTAINABILITY_ADMIN" && (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    )}
                   </button>
+
                   <button
-                    onClick={() => { setUserRole("BLOCK_MANAGER"); setUserBlockId("CSE"); setIsRoleDropdownOpen(false); }}
-                    className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between ${userRole === "BLOCK_MANAGER" ? "bg-emerald-50 text-emerald-800 font-bold" : "hover:bg-slate-50 text-slate-700"}`}
+                    onClick={() => {
+                      setUserRole("BLOCK_MANAGER");
+                      setUserBlockId("CSE");
+                      setSelectedBlockId("CSE");
+                      setIsRoleDropdownOpen(false);
+                      showToast("Active authority switched: CSE Block Facility Manager", "success");
+                    }}
+                    className={`w-full text-left p-2.5 rounded-xl flex items-start justify-between transition-all cursor-pointer ${
+                      userRole === "BLOCK_MANAGER" && userBlockId === "CSE"
+                        ? "bg-emerald-50/90 border border-emerald-200 text-emerald-950 font-bold" 
+                        : "hover:bg-slate-50 text-slate-700"
+                    }`}
                   >
-                    <span>CSE Block Manager</span>
-                    {userRole === "BLOCK_MANAGER" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                    <div>
+                      <div className="text-xs font-black flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-teal-600" />
+                        <span>CSE Block Facility Manager</span>
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-normal mt-0.5">
+                        Zonal Authority • Computer Science & IT Block Telemetry
+                      </div>
+                    </div>
+                    {userRole === "BLOCK_MANAGER" && userBlockId === "CSE" && (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setUserRole("BLOCK_MANAGER");
+                      setUserBlockId("ADMIN");
+                      setSelectedBlockId("ADMIN");
+                      setIsRoleDropdownOpen(false);
+                      showToast("Active authority switched: Administration Block Facility Manager", "success");
+                    }}
+                    className={`w-full text-left p-2.5 rounded-xl flex items-start justify-between transition-all cursor-pointer ${
+                      userRole === "BLOCK_MANAGER" && userBlockId === "ADMIN"
+                        ? "bg-emerald-50/90 border border-emerald-200 text-emerald-950 font-bold" 
+                        : "hover:bg-slate-50 text-slate-700"
+                    }`}
+                  >
+                    <div>
+                      <div className="text-xs font-black flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-teal-600" />
+                        <span>Admin Block Facility Manager</span>
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-normal mt-0.5">
+                        Zonal Authority • Central Administration Gateway Scope
+                      </div>
+                    </div>
+                    {userRole === "BLOCK_MANAGER" && userBlockId === "ADMIN" && (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    )}
                   </button>
                 </div>
               </div>

@@ -50,7 +50,7 @@ export function generateMvReportCsv({ overviewData, blocks = [], actions = [], s
 
   // Section 4: Auditor & Administrative Sign-off
   csvContent += `--- SECTION 4: AUDITOR & INSTITUTIONAL SIGN-OFF ---\r\n`;
-  csvContent += `Prepared By: Dr. R. Sharma, Chief Sustainability Officer, Presidency University\r\n`;
+  csvContent += `Prepared By: Office of Campus Sustainability & Energy Management Directorate, Presidency University\r\n`;
   csvContent += `Auditor Accreditation: Certified Measurement & Verification Professional (CMVP #8491)\r\n`;
   csvContent += `Standard Applied: Efficiency Valuation Organization (EVO) IPMVP Option B & Option C\r\n`;
   csvContent += `System Integrity: ECHOTECH AI Engine (Cryptographically Hashed IoT Telemetry Registers)\r\n`;
@@ -214,7 +214,7 @@ export function printExecutiveMvReport({ overviewData, blocks = [], actions = []
   <div class="signature-grid">
     <div>
       <div style="height: 48px;"></div>
-      <div class="sig-line">Dr. R. Sharma, Chief Sustainability Officer<br/><span style="font-size:10px; color:#64748b; font-weight:normal;">Presidency University Bengaluru • CMVP #8491</span></div>
+      <div class="sig-line">Office of Campus Sustainability Directorate<br/><span style="font-size:10px; color:#64748b; font-weight:normal;">Presidency University Bengaluru • CMVP #8491 Certified</span></div>
     </div>
     <div>
       <div style="height: 48px;"></div>

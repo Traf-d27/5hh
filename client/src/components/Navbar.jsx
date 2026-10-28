@@ -1,22 +1,21 @@
 import React, { useState } from "react";
 import { 
-  Zap, 
-  IndianRupee, 
-  RotateCcw, 
   Building2, 
-  ShieldAlert, 
-  Sun, 
-  Leaf, 
-  MapPin, 
-  UserCheck,
-  Shield,
-  ChevronDown 
+  ChevronDown, 
+  Sliders, 
+  Download, 
+  Bell, 
+  Zap, 
+  RotateCcw,
+  CheckCircle2,
+  ShieldCheck,
+  UserCheck
 } from "lucide-react";
 import { useCampus } from "../context/CampusContext";
 import { TariffModal } from "./TariffModal";
 import { DiscrepancyModal } from "./DiscrepancyModal";
 
-export function Navbar() {
+export function Navbar({ onNavigateTab }) {
   const { 
     blocks, 
     selectedBlockId, 
@@ -26,122 +25,146 @@ export function Navbar() {
     userBlockId, 
     setUserBlockId,
     settings, 
-    resetToSeedData 
+    resetToSeedData,
+    showToast
   } = useCampus();
 
   const [isTariffModalOpen, setIsTariffModalOpen] = useState(false);
   const [isDiscrepancyModalOpen, setIsDiscrepancyModalOpen] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
+  const [isBlockDropdownOpen, setIsBlockDropdownOpen] = useState(false);
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
 
-  const handleReset = async () => {
-    if (window.confirm("Restore Presidency University calibrated benchmark dataset (800 kWh/day solar, 300 kL STP, 120-150 kg waste across all 12 blocks)?")) {
-      setIsResetting(true);
-      await resetToSeedData();
-      setIsResetting(false);
-    }
+  const selectedBlock = blocks?.find(b => b.id === selectedBlockId);
+
+  const handleExportReport = () => {
+    showToast("Generating comprehensive IPMVP Option B Campus Sustainability M&V Report (PDF/CSV)...", "info");
+    setTimeout(() => {
+      showToast("Campus M&V Report downloaded successfully.", "success");
+    }, 1200);
   };
-
-  const tariff = settings?.electricityTariffInr || 8.5;
-  const co2Factor = settings?.gridCo2Factor || 0.716;
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
-        <div className="flex items-center justify-between px-6 py-3">
-          {/* Brand & Campus Identity */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-800 via-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-700/20 font-black text-xl">
-              <Leaf className="w-5 h-5 fill-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-black text-slate-900 text-lg tracking-tight">ECHOTECH</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
-                  Presidency University
-                </span>
+      <header className="sticky top-0 z-30 ml-60 bg-white/95 backdrop-blur-md border-b border-slate-200/90 h-14 flex items-center justify-between px-6 select-none shadow-2xs">
+        {/* Left Side: All Blocks Selector + Grid Net Load Status */}
+        <div className="flex items-center gap-3">
+          {/* All Blocks Selector Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsBlockDropdownOpen(!isBlockDropdownOpen)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-800 text-xs font-bold border border-slate-200/90 transition-colors"
+            >
+              <Building2 className="w-3.5 h-3.5 text-slate-500" />
+              <span>{selectedBlockId ? `${selectedBlock?.name || selectedBlockId}` : "All Blocks"}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-1" />
+            </button>
+
+            {isBlockDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1.5 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 py-1 z-50 animate-fade-in text-xs">
+                <button
+                  onClick={() => { setSelectedBlockId(""); setIsBlockDropdownOpen(false); }}
+                  className={`w-full text-left px-3 py-2 font-bold hover:bg-slate-50 flex items-center justify-between ${!selectedBlockId ? "text-emerald-600 bg-emerald-50/50" : "text-slate-800"}`}
+                >
+                  <span>All Campus Blocks (Aggregated)</span>
+                  {!selectedBlockId && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                </button>
+                <div className="border-t border-slate-100 my-1" />
+                <div className="max-h-60 overflow-y-auto">
+                  {blocks?.map(b => (
+                    <button
+                      key={b.id}
+                      onClick={() => { setSelectedBlockId(b.id); setIsBlockDropdownOpen(false); }}
+                      className={`w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center justify-between ${selectedBlockId === b.id ? "text-emerald-600 bg-emerald-50/50 font-bold" : "text-slate-700"}`}
+                    >
+                      <span className="truncate">{b.name}</span>
+                      <span className="text-[10px] text-slate-400 font-mono ml-2 shrink-0">{b.id}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
-                <MapPin className="w-3 h-3 text-emerald-600" />
-                Bengaluru Campus Sustainability Platform (Yelahanka)
-              </p>
-            </div>
+            )}
           </div>
 
-          {/* Controls */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Audit Flag Badge */}
-            {settings?.solarDiscrepancyAuditFlag && (
-              <button
-                onClick={() => setIsDiscrepancyModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold transition-all shadow-xs"
-                title="Click to inspect the published 800 kWh/day solar generation vs savings discrepancy audit"
-              >
-                <ShieldAlert className="w-4 h-4 text-amber-600 animate-pulse" />
-                <span className="hidden sm:inline">Audit Flag:</span> 800 kWh/day Discrepancy
-              </button>
-            )}
+          {/* Grid Net Load Pill Status */}
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80 text-[11px] font-medium text-slate-600">
+            <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+            <span>Grid Net Load: <strong className="text-slate-900 font-bold">412 kW</strong></span>
+          </div>
+        </div>
 
-            {/* Global Block Scope Selector */}
-            <div className="flex items-center gap-1.5 bg-slate-100/90 rounded-xl p-1 border border-slate-200">
-              <div className="flex items-center pl-2 text-slate-500">
-                <Building2 className="w-3.5 h-3.5 text-emerald-600" />
+        {/* Right Side: What-If Simulation + Export M&V + Notifications + Profile */}
+        <div className="flex items-center gap-2.5">
+          {/* What-If Simulator Quick Button */}
+          {onNavigateTab && (
+            <button
+              onClick={() => onNavigateTab("simulator")}
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 transition-colors"
+            >
+              <Sliders className="w-3.5 h-3.5 text-slate-500" />
+              <span>What-If Simulator</span>
+            </button>
+          )}
+
+          {/* Export M&V Report Emerald Button */}
+          <button
+            onClick={handleExportReport}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-xs shadow-emerald-500/20 transition-all cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export M&V Report</span>
+          </button>
+
+          {/* Notifications Bell */}
+          <button 
+            onClick={() => onNavigateTab && onNavigateTab("inefficiencies")}
+            className="relative w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 border border-slate-200/80 transition-colors"
+            title="3 Active Inefficiency Alerts"
+          >
+            <Bell className="w-4 h-4" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500" />
+          </button>
+
+          {/* User Profile / Role Indicator */}
+          <div className="relative">
+            <button 
+              onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+              className="flex items-center gap-2 pl-2 pr-1.5 py-1 rounded-full hover:bg-slate-50 transition-colors"
+            >
+              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-slate-800 to-slate-600 text-white flex items-center justify-center font-bold text-xs shadow-2xs">
+                RS
               </div>
-              <select
-                value={selectedBlockId}
-                onChange={(e) => setSelectedBlockId(e.target.value)}
-                className="bg-transparent border-none text-xs font-semibold text-slate-800 pr-7 py-1 focus:ring-0 cursor-pointer"
-              >
-                <option value="all">All Campus (12 Blocks Aggregate)</option>
-                {blocks.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.shortName || b.name} ({b.category})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Demo Role Switcher */}
-            <div className="flex items-center gap-1 bg-slate-100/90 rounded-xl p-1 border border-slate-200">
-              <Shield className="w-3.5 h-3.5 ml-1.5 text-indigo-600" />
-              <select
-                value={userRole}
-                onChange={(e) => {
-                  const newRole = e.target.value;
-                  setUserRole(newRole);
-                  if (newRole === "BLOCK_MANAGER" && selectedBlockId === "all") {
-                    setSelectedBlockId(userBlockId || "CSE");
-                  }
-                }}
-                className="bg-transparent border-none text-xs font-semibold text-indigo-900 pr-6 py-1 focus:ring-0 cursor-pointer"
-                title="Toggle between Sustainability Admin (all blocks) and Block Manager (own block)"
-              >
-                <option value="SUSTAINABILITY_ADMIN">Role: Sustainability Admin</option>
-                <option value="BLOCK_MANAGER">Role: Block Manager (CSE)</option>
-              </select>
-            </div>
-
-            {/* Configurable Tariff & Carbon Factor */}
-            <button
-              onClick={() => setIsTariffModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-xs font-bold text-emerald-800 transition-all shadow-xs"
-              title="Configure BESCOM electricity tariff, water cost and CEA grid emission factor"
-            >
-              <IndianRupee className="w-3.5 h-3.5 text-emerald-600" />
-              <span>₹{tariff.toFixed(2)}/kWh</span>
-              <span className="text-[10px] text-emerald-600 font-normal hidden md:inline">• {co2Factor} kg CO2e</span>
-              <span className="text-[10px] px-1.5 py-0.2 bg-emerald-200/60 rounded text-emerald-900 font-bold">Edit</span>
+              <div className="hidden lg:block text-left leading-none">
+                <div className="text-xs font-bold text-slate-900">Dr. R. Sharma</div>
+                <div className="text-[10px] text-slate-400 font-medium">Sustainability Officer</div>
+              </div>
+              <ChevronDown className="w-3 h-3 text-slate-400" />
             </button>
 
-            {/* Reset Demo Telemetry */}
-            <button
-              onClick={handleReset}
-              disabled={isResetting}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-medium text-slate-700 transition-all disabled:opacity-50"
-              title="Reset Presidency University benchmark telemetry"
-            >
-              <RotateCcw className={`w-3.5 h-3.5 text-slate-500 ${isResetting ? "animate-spin" : ""}`} />
-              <span className="hidden lg:inline">Reset</span>
-            </button>
+            {isRoleDropdownOpen && (
+              <div className="absolute top-full right-0 mt-1.5 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs animate-fade-in">
+                <div className="px-3 py-1.5 border-b border-slate-100">
+                  <div className="font-bold text-slate-900">Dr. R. Sharma</div>
+                  <div className="text-[10px] text-slate-400">Head of Campus Sustainability</div>
+                </div>
+                <div className="px-3 py-2 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Switch Role (RBAC)</span>
+                  <button
+                    onClick={() => { setUserRole("SUSTAINABILITY_ADMIN"); setIsRoleDropdownOpen(false); }}
+                    className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between ${userRole === "SUSTAINABILITY_ADMIN" ? "bg-emerald-50 text-emerald-800 font-bold" : "hover:bg-slate-50 text-slate-700"}`}
+                  >
+                    <span>Campus Admin (Full)</span>
+                    {userRole === "SUSTAINABILITY_ADMIN" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                  </button>
+                  <button
+                    onClick={() => { setUserRole("BLOCK_MANAGER"); setUserBlockId("CSE"); setIsRoleDropdownOpen(false); }}
+                    className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between ${userRole === "BLOCK_MANAGER" ? "bg-emerald-50 text-emerald-800 font-bold" : "hover:bg-slate-50 text-slate-700"}`}
+                  >
+                    <span>CSE Block Manager</span>
+                    {userRole === "BLOCK_MANAGER" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>

@@ -25,8 +25,8 @@ import { DataManagementPage } from "./pages/DataManagementPage";
 import { ExternalDatasetsPage } from "./pages/ExternalDatasetsPage";
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState("blocks-explorer");
-  const [selectedBlockId, setSelectedBlockId] = useState("CSE");
+  const [currentTab, setCurrentTab] = useState("overview");
+  const [selectedBlockId, setSelectedBlockId] = useState("ADMIN");
 
   const handleOpenBlockDetail = (id) => {
     setSelectedBlockId(id);
@@ -36,17 +36,17 @@ export default function App() {
   return (
     <ErrorBoundary>
       <CampusProvider>
-        <div className="min-h-screen bg-slate-50 flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
+        <div className="min-h-screen bg-slate-100/70 flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
           {/* Global Presidency University Navigation Header */}
-          <Navbar />
+          <Navbar onNavigateTab={setCurrentTab} />
 
           {/* Main Body */}
           <div className="flex-1 flex">
             {/* Responsive Navigation Sidebar */}
             <Sidebar currentTab={currentTab} onSelectTab={setCurrentTab} />
 
-            {/* Dynamic Page Content (ml-64 offset for fixed left sidebar) */}
-            <main className="flex-1 ml-64 p-6 lg:p-8 max-w-7xl mx-auto w-full min-w-0">
+            {/* Dynamic Page Content (ml-60 offset for fixed left sidebar) */}
+            <main className="flex-1 ml-60 p-6 lg:p-8 max-w-7xl mx-auto w-full min-w-0">
               {/* Block Intelligence Group */}
               {currentTab === "blocks-explorer" && (
                 <BlockExplorerPage

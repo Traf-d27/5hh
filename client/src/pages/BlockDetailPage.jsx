@@ -20,7 +20,8 @@ import {
   CheckCircle2, 
   ArrowRight,
   Upload,
-  Calendar
+  Calendar,
+  ShieldCheck
 } from "lucide-react";
 import { 
   AreaChart, 

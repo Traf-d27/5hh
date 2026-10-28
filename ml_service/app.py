@@ -726,6 +726,464 @@ def verify_impact():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# ─── BLOCK-AWARE ML ENDPOINTS (PHASE 3) ────────────────────────────────────
+
+def load_blocks_config():
+    """Load blocks registry from server/data/blocks.config.json."""
+    import os
+    config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'server', 'data', 'blocks.config.json')
+    if os.path.exists(config_path):
+        with open(config_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return []
+
+
+@app.route('/ml/blocks/anomaly-detect', methods=['POST'])
+def block_anomaly_detect():
+    """
+    Isolation Forest per block x resource.
+    Features: [rate, normalized_deviation, hour_of_day, night_day_ratio]
+    Returns schema: blockId, resource, timestamp, severity, plain-language reason,
+    estimated wasted INR and kg CO2e, and suggested recommendationId.
+    """
+    try:
+        from sklearn.ensemble import IsolationForest
+        from sklearn.preprocessing import StandardScaler
+
+        body = request.get_json(silent=True) or {}
+        target_block = (body.get('blockId') or 'CSE').upper()
+        resource_type = (body.get('resourceType') or 'electricity').lower()
+        contamination = float(body.get('contamination', 0.08))
+
+        blocks = load_blocks_config()
+        block_info = next((b for b in blocks if b['id'] == target_block), None)
+        block_name = block_info['name'] if block_info else target_block
+
+        # Generate 14-day synthetic hourly feature vector for the block
+        np.random.seed(42)
+        n_hours = 14 * 24
+        timestamps = []
+        features = []
+
+        base_time = datetime(2026, 10, 14, 0, 0)
+        base_demand = (block_info['builtUpAreaSqm'] * 0.04) if block_info else 100.0
+
+        for i in range(n_hours):
+            dt = base_time + timedelta(hours=i)
+            hour = dt.hour
+            day_of_week = dt.weekday()
+            is_weekend = day_of_week >= 5
+
+            # Diurnal shape
+            hour_factor = 0.35 + 0.65 * np.sin(np.pi * max(0, hour - 6) / 12) if 6 <= hour <= 18 else 0.22
+            if is_weekend:
+                hour_factor *= 0.55
+
+            rate = base_demand * hour_factor * (1.0 + np.random.normal(0, 0.04))
+            norm_dev = (rate - base_demand * 0.5) / (base_demand * 0.5)
+            night_day_ratio = rate / (base_demand * 0.8) if hour < 6 or hour >= 22 else 0.0
+
+            # Injected fault: CSE night baseload past Oct 24 (index > 240)
+            if target_block == 'CSE' and i >= 240 and (hour >= 22 or hour <= 5):
+                rate *= 2.6
+                norm_dev = 1.95
+                night_day_ratio = 1.85
+
+            timestamps.append(dt.strftime('%Y-%m-%d %H:00'))
+            features.append([rate, norm_dev, hour, night_day_ratio])
+
+        X = np.array(features)
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+
+        iso = IsolationForest(contamination=contamination, random_state=42)
+        preds = iso.fit_predict(X_scaled)
+        scores = iso.decision_function(X_scaled)
+
+        anomalies = []
+        for i, (pred, score) in enumerate(zip(preds, scores)):
+            if pred == -1:
+                rate_val = round(float(X[i][0]), 1)
+                hour_val = int(X[i][2])
+                norm_dev_val = round(float(X[i][1]), 2)
+                
+                wasted_kwh = max(10, round(rate_val * 0.45, 1))
+                wasted_inr = round(wasted_kwh * 8.5)
+                wasted_co2 = round(wasted_kwh * 0.716, 1)
+
+                anomalies.append({
+                    'blockId': target_block,
+                    'blockName': block_name,
+                    'resource': resource_type.capitalize(),
+                    'timestamp': timestamps[i],
+                    'hour': hour_val,
+                    'observedRate': rate_val,
+                    'normalizedDeviation': norm_dev_val,
+                    'anomalyScore': round(float(score), 3),
+                    'severity': 'HIGH' if score < -0.15 else 'MEDIUM',
+                    'reason': f'{block_name} drew {rate_val} kWh during hour {hour_val}:00 (deviation: +{int(norm_dev_val * 100)}% over expected archetype baseline).',
+                    'estimatedWastedInr': wasted_inr,
+                    'estimatedWastedCo2eKg': wasted_co2,
+                    'recommendationId': f'REC-{target_block}-SHUTDOWN-01' if target_block == 'CSE' else f'REC-{target_block}-ENERGY-01'
+                })
+
+        return jsonify({
+            'success': True,
+            'blockId': target_block,
+            'blockName': block_name,
+            'resourceType': resource_type,
+            'model': 'Isolation Forest (scikit-learn)',
+            'totalSamplesAnalyzed': len(X),
+            'anomaliesDetected': len(anomalies),
+            'contaminationSetting': contamination,
+            'anomalies': anomalies[:10]
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/ml/blocks/forecast', methods=['POST'])
+def block_forecast():
+    """
+    Random Forest Regressor per-block load forecast.
+    Features: [day_of_week, day_index, temp_c, occupancy_factor, academic_calendar]
+    Chronological holdout (last 7 days as test set).
+    Returns MAE/RMSE vs Linear baseline.
+    """
+    try:
+        from sklearn.ensemble import RandomForestRegressor
+        from sklearn.linear_model import LinearRegression
+        from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+        body = request.get_json(silent=True) or {}
+        target_block = (body.get('blockId') or 'CSE').upper()
+        forecast_days = int(body.get('forecastDays', 7))
+
+        blocks = load_blocks_config()
+        block_info = next((b for b in blocks if b['id'] == target_block), None)
+        block_name = block_info['name'] if block_info else target_block
+        base_demand = (block_info['builtUpAreaSqm'] * 0.05) if block_info else 500.0
+
+        np.random.seed(42)
+        n_days = 30
+        features = []
+        targets = []
+        days_meta = []
+
+        start_date = datetime(2026, 10, 1)
+        for d in range(n_days):
+            cur_date = start_date + timedelta(days=d)
+            dow = cur_date.weekday()
+            is_weekend = 1 if dow >= 5 else 0
+            temp = round(28.0 + 3.0 * np.sin(d * 0.3) + np.random.normal(0, 0.8), 1)
+            occupancy_factor = 0.25 if is_weekend else 1.0
+            academic_flag = 1 if not is_weekend and d != 24 else 0
+
+            feat = [dow, d, temp, occupancy_factor, academic_flag]
+            load_kwh = round(base_demand * (0.8 + 0.3 * np.sin(d * 0.2)) * occupancy_factor + (temp - 25.0) * 12.0 + np.random.normal(0, 15.0), 1)
+
+            features.append(feat)
+            targets.append(max(50.0, load_kwh))
+            days_meta.append(cur_date.strftime('%Y-%m-%d'))
+
+        X = np.array(features)
+        y = np.array(targets)
+
+        # Chronological holdout: last 7 days test
+        split_idx = n_days - 7
+        X_train, X_test = X[:split_idx], X[split_idx:]
+        y_train, y_test = y[:split_idx], y[split_idx:]
+
+        rf = RandomForestRegressor(n_estimators=100, random_state=42)
+        rf.fit(X_train, y_train)
+        rf_pred = rf.predict(X_test)
+
+        lr = LinearRegression()
+        lr.fit(X_train, y_train)
+        lr_pred = lr.predict(X_test)
+
+        mae_rf = round(float(mean_absolute_error(y_test, rf_pred)), 2)
+        rmse_rf = round(float(np.sqrt(mean_squared_error(y_test, rf_pred))), 2)
+
+        mae_lr = round(float(mean_absolute_error(y_test, lr_pred)), 2)
+        rmse_lr = round(float(np.sqrt(mean_squared_error(y_test, lr_pred))), 2)
+
+        # Future forecast
+        future_feats = []
+        future_dates = []
+        for f in range(forecast_days):
+            f_date = start_date + timedelta(days=n_days + f)
+            dow = f_date.weekday()
+            is_weekend = 1 if dow >= 5 else 0
+            temp = 29.0
+            occ = 0.25 if is_weekend else 1.0
+            acad = 1 if not is_weekend else 0
+            future_feats.append([dow, n_days + f, temp, occ, acad])
+            future_dates.append(f_date.strftime('%Y-%m-%d'))
+
+        future_pred_rf = [round(float(v), 1) for v in rf.predict(future_feats)]
+        future_pred_lr = [round(float(v), 1) for v in lr.predict(future_feats)]
+
+        test_comparison = []
+        for i in range(len(y_test)):
+            test_comparison.append({
+                'date': days_meta[split_idx + i],
+                'actualKwh': round(float(y_test[i]), 1),
+                'rfPredictedKwh': round(float(rf_pred[i]), 1),
+                'lrPredictedKwh': round(float(lr_pred[i]), 1)
+            })
+
+        future_forecast = []
+        for i in range(forecast_days):
+            future_forecast.append({
+                'date': future_dates[i],
+                'rfForecastKwh': future_pred_rf[i],
+                'lrForecastKwh': future_pred_lr[i]
+            })
+
+        return jsonify({
+            'success': True,
+            'blockId': target_block,
+            'blockName': block_name,
+            'evaluation': {
+                'splitMethod': 'Chronological Holdout (last 7 days)',
+                'randomForest': {'mae': mae_rf, 'rmse': rmse_rf},
+                'linearRegression': {'mae': mae_lr, 'rmse': rmse_lr},
+                'betterModel': 'Random Forest' if rmse_rf <= rmse_lr else 'Linear Regression'
+            },
+            'testComparison': test_comparison,
+            'futureForecast': future_forecast
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/ml/blocks/cluster', methods=['POST'])
+def block_cluster():
+    """
+    K-Means clustering (k=3) over real 12 campus blocks.
+    Features: [peak_kw, daily_kwh, load_factor, kwh_per_sqm]
+    Labels:
+      Cluster 0: High-Peak Academic/Lab
+      Cluster 1: Continuous Baseload Residential
+      Cluster 2: Variable Intermittent
+    """
+    try:
+        from sklearn.cluster import KMeans
+        from sklearn.preprocessing import StandardScaler
+
+        blocks = load_blocks_config()
+        if not blocks:
+            return jsonify({'success': False, 'error': 'No blocks found in registry'}), 404
+
+        features = []
+        block_keys = []
+
+        for b in blocks:
+            area = b.get('builtUpAreaSqm', 10000)
+            category = b.get('category', 'Academic')
+            
+            # Derive synthetic clustering feature vector
+            if 'Lab' in category:
+                peak_kw = round(area * 0.022, 1)
+                daily_kwh = round(peak_kw * 11.5, 1)
+                load_factor = 0.52
+                kwh_sqm = round((daily_kwh * 365) / area, 1)
+            elif 'Residential' in category:
+                peak_kw = round(area * 0.014, 1)
+                daily_kwh = round(peak_kw * 16.2, 1)
+                load_factor = 0.72
+                kwh_sqm = round((daily_kwh * 365) / area, 1)
+            elif 'Food' in category:
+                peak_kw = round(area * 0.018, 1)
+                daily_kwh = round(peak_kw * 13.0, 1)
+                load_factor = 0.58
+                kwh_sqm = round((daily_kwh * 365) / area, 1)
+            else:
+                peak_kw = round(area * 0.012, 1)
+                daily_kwh = round(peak_kw * 8.5, 1)
+                load_factor = 0.38
+                kwh_sqm = round((daily_kwh * 365) / area, 1)
+
+            features.append([peak_kw, daily_kwh, load_factor, kwh_sqm])
+            block_keys.append(b)
+
+        X = np.array(features)
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+
+        kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+        labels = kmeans.fit_predict(X_scaled)
+
+        # Interpret clusters based on center characteristics
+        centers = kmeans.cluster_centers_
+        cluster_names = {}
+        for c_idx in range(3):
+            avg_load_factor = np.mean(X[labels == c_idx, 2])
+            avg_peak = np.mean(X[labels == c_idx, 0])
+            if avg_load_factor > 0.65:
+                cluster_names[c_idx] = "Continuous Baseload Residential"
+            elif avg_peak > 180:
+                cluster_names[c_idx] = "High-Peak Academic/Lab"
+            else:
+                cluster_names[c_idx] = "Variable Intermittent"
+
+        clustered_blocks = []
+        for i, b in enumerate(block_keys):
+            c_id = int(labels[i])
+            clustered_blocks.append({
+                'blockId': b['id'],
+                'name': b['name'],
+                'category': b['category'],
+                'builtUpAreaSqm': b['builtUpAreaSqm'],
+                'clusterId': c_id,
+                'clusterLabel': cluster_names.get(c_id, f'Cluster {c_id}'),
+                'features': {
+                    'peakKw': features[i][0],
+                    'dailyKwh': features[i][1],
+                    'loadFactor': features[i][2],
+                    'kwhPerSqm': features[i][3]
+                }
+            })
+
+        return jsonify({
+            'success': True,
+            'k': 3,
+            'clusters': [
+                {'id': 0, 'label': cluster_names.get(0, 'Cluster 0')},
+                {'id': 1, 'label': cluster_names.get(1, 'Cluster 1')},
+                {'id': 2, 'label': cluster_names.get(2, 'Cluster 2')}
+            ],
+            'blocks': clustered_blocks
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/ml/blocks/simulate', methods=['POST'])
+def block_simulate():
+    """
+    What-If scenario projection per block.
+    Formulas:
+      ΔE = baseline * applicable_fraction * reduction_pct
+      ₹ = ΔE * tariff
+      tCO2e = ΔE * factor / 1000
+      payback_months = capex / monthly_savings
+      5-year NPV = (annual_savings * 3.79) - capex (10% discount rate)
+      contribution_to_campus_target = annual_savings / 500,000 * 100%
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        block_id = (data.get('blockId') or 'CSE').upper()
+        resource_type = data.get('resourceType', 'Electricity')
+        baseline_daily = float(data.get('baselineDaily', 1800))
+        applicable_fraction = float(data.get('applicableFraction', 1.0))
+        assumed_reduction_pct = float(data.get('assumedReductionPct', 30))
+        analysis_days = int(data.get('analysisDays', 30))
+        tariff = float(data.get('tariffInr', 8.5))
+        co2_factor = float(data.get('co2Factor', 0.716))
+        capex_inr = float(data.get('capexInr', 15000))
+
+        # Core reduction calculation
+        applicable_baseline = baseline_daily * applicable_fraction
+        period_baseline = applicable_baseline * analysis_days
+        reduction_daily = applicable_baseline * (assumed_reduction_pct / 100.0)
+        period_reduction = reduction_daily * analysis_days
+        projected_daily = baseline_daily - reduction_daily
+        projected_period = projected_daily * analysis_days
+
+        # Financial yield
+        monthly_savings_inr = round((period_reduction / analysis_days * 30) * tariff)
+        annual_savings_inr = monthly_savings_inr * 12
+        payback_months = round(capex_inr / monthly_savings_inr, 1) if monthly_savings_inr > 0 else 0.0
+        five_year_npv_inr = round(annual_savings_inr * 3.79 - capex_inr)
+        campus_target_contrib_pct = round((annual_savings_inr / 500000.0) * 100.0, 1)
+
+        # Carbon avoidance
+        co2_avoided_kg = round(period_reduction * co2_factor, 1)
+        co2_avoided_tons = round(co2_avoided_kg / 1000.0, 3)
+
+        return jsonify({
+            'success': True,
+            'blockId': block_id,
+            'resourceType': resource_type,
+            'baseline': {
+                'daily': round(baseline_daily, 1),
+                'applicableDaily': round(applicable_baseline, 1),
+                'periodTotal': round(period_baseline, 1),
+                'days': analysis_days
+            },
+            'projected': {
+                'reductionPct': assumed_reduction_pct,
+                'dailyReduction': round(reduction_daily, 1),
+                'periodReduction': round(period_reduction, 1),
+                'projectedDaily': round(projected_daily, 1),
+                'projectedPeriod': round(projected_period, 1)
+            },
+            'financial': {
+                'tariffInr': tariff,
+                'monthlySavingsInr': monthly_savings_inr,
+                'annualSavingsInr': annual_savings_inr,
+                'capexInr': capex_inr,
+                'paybackMonths': payback_months,
+                'fiveYearNpvInr': five_year_npv_inr,
+                'contributionToCampusTargetPct': campus_target_contrib_pct
+            },
+            'environmental': {
+                'co2Factor': co2_factor,
+                'co2AvoidedKg': co2_avoided_kg,
+                'co2AvoidedTons': co2_avoided_tons
+            },
+            'protocol': 'IPMVP Option B Forward Simulation'
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/ml/blocks/verify', methods=['POST'])
+def block_verify():
+    """
+    IPMVP Option B per block (baseline vs post-retrofit, realization rate = actual/projected * 100).
+    Option C campus rollup.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        block_id = (data.get('blockId') or 'ALL').upper()
+        baseline_kwh = float(data.get('baselineKwh', 50000))
+        projected_reduction_kwh = float(data.get('projectedReductionKwh', 4800))
+        actual_post_kwh = float(data.get('actualPostKwh', 45500))
+        tariff = float(data.get('tariffInr', 8.5))
+        co2_factor = float(data.get('co2Factor', 0.716))
+
+        actual_reduction_kwh = max(0.0, baseline_kwh - actual_post_kwh)
+        realization_rate_pct = round((actual_reduction_kwh / projected_reduction_kwh) * 100.0, 1) if projected_reduction_kwh > 0 else 0.0
+
+        verified_inr = round(actual_reduction_kwh * tariff)
+        verified_co2_kg = round(actual_reduction_kwh * co2_factor, 1)
+
+        return jsonify({
+            'success': True,
+            'blockId': block_id,
+            'protocol': 'IPMVP Option B (Retrofit Isolation)' if block_id != 'ALL' else 'IPMVP Option C (Whole Facility Rollup)',
+            'baselineKwh': baseline_kwh,
+            'projectedReductionKwh': projected_reduction_kwh,
+            'actualPostKwh': actual_post_kwh,
+            'actualReductionKwh': actual_reduction_kwh,
+            'realizationRatePct': realization_rate_pct,
+            'status': 'VERIFIED_EXCEEDED' if realization_rate_pct >= 100 else 'VERIFIED_PARTIAL' if realization_rate_pct >= 70 else 'UNDERPERFORMING',
+            'financialVerifiedInr': verified_inr,
+            'carbonVerifiedCo2eKg': verified_co2_kg,
+            'confidence': 'High (Metered Empirical Comparison)'
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ─── ML MODEL STATUS ─────────────────────────────────────────────────────────
 @app.route('/ml/status', methods=['GET'])
 def ml_status():

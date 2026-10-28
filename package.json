@@ -1,0 +1,25 @@
+{
+  "name": "echotech-campus-energy",
+  "version": "1.0.0",
+  "description": "ECHOTECH: Presidency University Campus Sustainability Intelligence Platform",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js",
+    "start:server": "npm --prefix server start",
+    "start:client": "npm --prefix client run dev",
+    "build:client": "npm --prefix client run build"
+  },
+  "keywords": [
+    "presidency-university",
+    "campus-sustainability",
+    "solar-energy",
+    "water-stp",
+    "food-waste",
+    "klimatwin",
+    "ipmvp"
+  ],
+  "author": "ECHOTECH Team",
+  "license": "MIT"
+}

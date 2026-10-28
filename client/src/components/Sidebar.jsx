@@ -1,0 +1,134 @@
+import React from "react";
+import { 
+  LayoutDashboard, 
+  Sun, 
+  Droplets, 
+  Trash2, 
+  AlertTriangle, 
+  Lightbulb, 
+  CheckSquare, 
+  Award, 
+  FileSpreadsheet,
+  Leaf,
+  Layers
+} from "lucide-react";
+import { useCampus } from "../context/CampusContext";
+
+export function Sidebar({ currentTab, onSelectTab }) {
+  const { anomalies, actions } = useCampus();
+
+  const unresolvedCount = anomalies?.length || 0;
+  const activeActionsCount = actions?.filter(a => a.status !== "Resolved").length || 0;
+
+  const navItems = [
+    {
+      id: "overview",
+      label: "Campus Overview",
+      icon: LayoutDashboard,
+      badge: null
+    },
+    {
+      id: "solar",
+      label: "Solar Intelligence",
+      icon: Sun,
+      badge: "Flagship",
+      badgeColor: "bg-amber-500/20 text-amber-300 border border-amber-400/30"
+    },
+    {
+      id: "water",
+      label: "Water Intelligence",
+      icon: Droplets,
+      badge: "300 kL STP",
+      badgeColor: "bg-cyan-500/20 text-cyan-300 border border-cyan-400/30"
+    },
+    {
+      id: "waste",
+      label: "Waste Intelligence",
+      icon: Trash2,
+      badge: "Compost",
+      badgeColor: "bg-emerald-500/20 text-emerald-300 border border-emerald-400/30"
+    },
+    {
+      id: "inefficiencies",
+      label: "Inefficiency Alerts",
+      icon: AlertTriangle,
+      badge: unresolvedCount > 0 ? unresolvedCount : null,
+      badgeColor: "bg-rose-500 text-white"
+    },
+    {
+      id: "recommendations",
+      label: "Recommendations",
+      icon: Lightbulb,
+      badge: "KlimaTwin",
+      badgeColor: "bg-teal-500/20 text-teal-300"
+    },
+    {
+      id: "actions",
+      label: "Action Tracking",
+      icon: CheckSquare,
+      badge: activeActionsCount > 0 ? activeActionsCount : null,
+      badgeColor: "bg-emerald-600 text-white"
+    },
+    {
+      id: "impact",
+      label: "Impact Verification",
+      icon: Award,
+      badge: "IPMVP",
+      badgeColor: "bg-indigo-500/20 text-indigo-300"
+    },
+    {
+      id: "data",
+      label: "Data Management",
+      icon: FileSpreadsheet,
+      badge: null
+    }
+  ];
+
+  return (
+    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 min-h-[calc(100vh-65px)] border-r border-slate-800">
+      {/* Navigation */}
+      <div className="p-4 flex-1 space-y-1">
+        <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+          Resource Intelligence
+        </div>
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = currentTab === item.id;
+
+          return (
+            <button
+              key={item.id}
+              onClick={() => onSelectTab(item.id)}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                isActive
+                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30"
+                  : "hover:bg-slate-800 text-slate-300 hover:text-white"
+              }`}
+            >
+              <div className="flex items-center gap-2.5 truncate">
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-white" : "text-slate-400"}`} />
+                <span className="truncate">{item.label}</span>
+              </div>
+              {item.badge !== null && (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${item.badgeColor || "bg-slate-700 text-slate-300"}`}>
+                  {item.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Sustainable Campus Footer */}
+      <div className="p-4 border-t border-slate-800/80 bg-slate-950/40">
+        <div className="flex items-center gap-2 mb-1.5">
+          <Leaf className="w-4 h-4 text-emerald-400" />
+          <span className="text-xs font-bold text-emerald-300">Presidency Green Target</span>
+        </div>
+        <p className="text-[11px] text-slate-400 leading-relaxed">
+          KlimaTwin Workflow: SENSE → ANALYZE → DETECT → RECOMMEND → ACT → VERIFY → LEARN.
+        </p>
+      </div>
+    </aside>
+  );
+}

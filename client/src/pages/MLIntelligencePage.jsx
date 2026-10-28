@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Brain, Activity, Cpu, GitBranch, AlertCircle, CheckCircle2,
   RefreshCw, BarChart2, Info, ChevronDown, ChevronUp, Layers,
-  TrendingDown, TrendingUp, Zap, Droplets, Trash2, Leaf
+  TrendingDown, TrendingUp, Zap, Droplets, Trash2, Leaf, ArrowRight, Database
 } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar, ScatterChart, Scatter,
@@ -271,7 +271,7 @@ function ClusterChart({ data }) {
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────
-export function MLIntelligencePage() {
+export function MLIntelligencePage({ onNavigateTab }) {
   const [modelResults, setModelResults] = useState({});
   const [loadingModels, setLoadingModels] = useState({});
   const [errors, setErrors] = useState({});
@@ -335,8 +335,18 @@ export function MLIntelligencePage() {
             <h1 className="text-2xl font-black tracking-tight">ML Intelligence Engine</h1>
             <p className="text-xs text-slate-300 mt-1 max-w-2xl">
               Four genuine ML models trained and evaluated on synthetic data calibrated against Presidency University
-              published references. All metrics are computed on held-out test data — never fabricated.
+              published references, plus five international sustainability benchmarks (UNICON, BDG2, UCI, Zenodo).
             </p>
+            {onNavigateTab && (
+              <button
+                onClick={() => onNavigateTab("datasets")}
+                className="mt-3 px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-xs font-bold border border-cyan-400/40 flex items-center gap-1.5 transition-all w-fit shadow-xs"
+              >
+                <Database className="w-3.5 h-3.5" />
+                <span>External Sustainability Datasets & Model Registry (5 Sources)</span>
+                <ArrowRight className="w-3.5 h-3.5 ml-1" />
+              </button>
+            )}
           </div>
           <div className={`shrink-0 px-4 py-3 rounded-xl border text-center ${
             mlOnline === false ? "border-red-400/40 bg-red-900/30" : mlOnline ? "border-emerald-400/40 bg-emerald-900/30" : "border-slate-600 bg-slate-800"

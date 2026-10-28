@@ -22,6 +22,7 @@ import { MLIntelligencePage } from "./pages/MLIntelligencePage";
 import { ActionTrackerPage } from "./pages/ActionTrackerPage";
 import { ImpactVerificationPage } from "./pages/ImpactVerificationPage";
 import { DataManagementPage } from "./pages/DataManagementPage";
+import { ExternalDatasetsPage } from "./pages/ExternalDatasetsPage";
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState("blocks-explorer");
@@ -44,8 +45,8 @@ export default function App() {
             {/* Responsive Navigation Sidebar */}
             <Sidebar currentTab={currentTab} onSelectTab={setCurrentTab} />
 
-            {/* Dynamic Page Content */}
-            <main className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full overflow-y-auto">
+            {/* Dynamic Page Content (ml-64 offset for fixed left sidebar) */}
+            <main className="flex-1 ml-64 p-6 lg:p-8 max-w-7xl mx-auto w-full min-w-0">
               {/* Block Intelligence Group */}
               {currentTab === "blocks-explorer" && (
                 <BlockExplorerPage
@@ -86,7 +87,8 @@ export default function App() {
               {currentTab === "ml" && <MLIntelligencePage onNavigateTab={setCurrentTab} />}
               {currentTab === "actions" && <ActionTrackerPage />}
               {currentTab === "impact" && <ImpactVerificationPage />}
-              {currentTab === "data" && <DataManagementPage />}
+              {currentTab === "data" && <DataManagementPage onNavigateTab={setCurrentTab} />}
+              {currentTab === "datasets" && <ExternalDatasetsPage />}
             </main>
           </div>
 

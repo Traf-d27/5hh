@@ -1,0 +1,147 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-10-28T14:15:00Z",
+  "storageBaseDir": "data/datasets",
+  "datasets": [
+    {
+      "id": "unicon",
+      "name": "UNICON: University Utility Consumption Dataset",
+      "category": "University Campus Utilities",
+      "resourceType": "electricity_water_gas",
+      "organization": "La Trobe University (LEAP Platform) / CDAC Lab",
+      "sourceUrl": "https://github.com/schmalte04/unicon",
+      "fullDatasetUrl": "https://www.kaggle.com/datasets/cdaclab/unicon",
+      "license": "CC BY 4.0",
+      "frequency": "Hourly / 15-minute",
+      "nativeUnits": {
+        "electricity": "kWh",
+        "water": "kL",
+        "gas": "MJ"
+      },
+      "canonicalUnits": {
+        "electricity": "kWh",
+        "water": "kL",
+        "gas": "MJ"
+      },
+      "rawFiles": [
+        "building_consumption_sub.csv",
+        "water_consumption_sub.csv",
+        "building_meta.csv",
+        "weather_data_sub_1.csv"
+      ],
+      "processedFile": "processed/unicon_clean.csv",
+      "description": "Longitudinal university campus utility dataset covering multiple academic, residential, and administrative buildings across university campuses.",
+      "status": "ready"
+    },
+    {
+      "id": "bdg2",
+      "name": "Building Data Genome Project 2 (BDG2)",
+      "category": "Higher Education Multi-Building Benchmark",
+      "resourceType": "multi_building_electricity",
+      "organization": "Building and Urban Data Science (BUDS) Lab, NUS",
+      "sourceUrl": "https://github.com/buds-lab/building-data-genome-project-2",
+      "license": "MIT",
+      "frequency": "Hourly",
+      "nativeUnits": {
+        "electricity": "kWh",
+        "area": "sqm",
+        "power": "kW"
+      },
+      "canonicalUnits": {
+        "electricity": "kWh",
+        "area": "sqm",
+        "intensity": "kWh/sqm"
+      },
+      "rawFiles": [
+        "metadata.csv",
+        "electricity_cleaned_sample.csv"
+      ],
+      "processedFile": "processed/bdg2_clean.csv",
+      "description": "Global multi-facility dataset with 3,053 energy meters from 1,636 buildings across 19 university campus sites.",
+      "status": "ready"
+    },
+    {
+      "id": "uci_appliances",
+      "name": "UCI Appliances Energy Prediction",
+      "category": "Time-Series Load & Environmental Modeling",
+      "resourceType": "electricity",
+      "organization": "UCI Machine Learning Repository (Dataset #374, Luis Candanedo)",
+      "sourceUrl": "https://archive.ics.uci.edu/dataset/374/appliances+energy+prediction",
+      "downloadUrl": "https://archive.ics.uci.edu/static/public/374/appliances+energy+prediction.zip",
+      "license": "CC BY 4.0",
+      "frequency": "10-minute intervals",
+      "nativeUnits": {
+        "Appliances": "Wh",
+        "lights": "Wh",
+        "Temperature": "Celsius",
+        "Humidity": "%RH"
+      },
+      "canonicalUnits": {
+        "energy_kwh": "kWh",
+        "lights_kwh": "kWh",
+        "temp_c": "Celsius",
+        "rh_pct": "%RH"
+      },
+      "rawFiles": [
+        "energydata_complete.csv"
+      ],
+      "processedFile": "processed/uci_appliances_clean.csv",
+      "description": "High-resolution chronological time series of energy consumption paired with indoor/outdoor environmental telemetry.",
+      "status": "ready"
+    },
+    {
+      "id": "water_network",
+      "name": "Water Network Anomaly & Leakage Benchmark",
+      "category": "Hydraulic Distribution Anomaly Detection",
+      "resourceType": "water",
+      "organization": "Zenodo Record 15096167 (Technical University of Catalonia)",
+      "sourceUrl": "https://zenodo.org/records/15096167",
+      "downloadUrl": "https://zenodo.org/records/15096167/files/input_model_potenc_predXfault7_A.csv?download=1",
+      "license": "CC BY 4.0",
+      "frequency": "Hourly",
+      "nativeUnits": {
+        "flow": "L/s or normalized state",
+        "pressure": "m or bar",
+        "fault_flag": "binary {0, 1}"
+      },
+      "canonicalUnits": {
+        "pressure_state": "normalized bar",
+        "flow_state": "normalized state",
+        "is_anomaly": "binary {0, 1}"
+      },
+      "rawFiles": [
+        "input_model_potenc_predXfault7_A.csv"
+      ],
+      "processedFile": "processed/water_network_clean.csv",
+      "description": "Empirical hydraulic pipe network benchmark with simulated and validated pipe bursts, valve closures, and pressure anomalies.",
+      "status": "ready"
+    },
+    {
+      "id": "school_food_waste",
+      "name": "School Food Waste Study (Finland 2024-2025)",
+      "category": "Institutional Dining Waste & Behavioral Intervention",
+      "resourceType": "waste",
+      "organization": "Zenodo Record 20825233 (Natural Resources Institute Finland LUKE)",
+      "sourceUrl": "https://zenodo.org/records/20825233",
+      "downloadUrl": "https://zenodo.org/records/20825233/files/Food%20waste%20data%20school%20Finland%202024-2025.xlsx?download=1",
+      "license": "CC BY 4.0",
+      "frequency": "Daily per school mess",
+      "nativeUnits": {
+        "waste": "grams (g)",
+        "diners": "count",
+        "waste_per_diner": "g/person"
+      },
+      "canonicalUnits": {
+        "waste_kg": "kg",
+        "diners": "count",
+        "waste_per_diner_g": "g/person"
+      },
+      "rawFiles": [
+        "Food waste data school Finland 2024-2025.xlsx"
+      ],
+      "processedFile": "processed/school_food_waste_clean.csv",
+      "description": "Daily institutional kitchen food waste records with diner counts, kitchen surplus, and plate scrapings pre- and post-nudging interventions.",
+      "status": "ready"
+    }
+  ]
+}

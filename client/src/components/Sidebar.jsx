@@ -16,7 +16,8 @@ import {
   Building2,
   MapPin,
   Scale,
-  Trophy
+  Trophy,
+  Database
 } from "lucide-react";
 import { useCampus } from "../context/CampusContext";
 
@@ -148,15 +149,22 @@ export function Sidebar({ currentTab, onSelectTab }) {
           label: "Data Management",
           icon: FileSpreadsheet,
           badge: null
+        },
+        {
+          id: "datasets",
+          label: "External Datasets",
+          icon: Database,
+          badge: "5 Sources",
+          badgeColor: "bg-cyan-500/20 text-cyan-300 border border-cyan-400/30"
         }
       ]
     }
   ];
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 min-h-[calc(100vh-65px)] border-r border-slate-800">
-      {/* Navigation */}
-      <div className="p-4 flex-1 space-y-5 overflow-y-auto">
+    <aside className="fixed top-[65px] left-0 bottom-0 w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 border-r border-slate-800 z-30 shadow-xl select-none">
+      {/* Navigation with Independent Smooth Scrolling */}
+      <div className="p-4 flex-1 space-y-5 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-700/80 scrollbar-track-transparent hover:scrollbar-thumb-slate-600 transition-colors">
         {navSections.map((section, sIdx) => (
           <div key={sIdx} className="space-y-1">
             <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">

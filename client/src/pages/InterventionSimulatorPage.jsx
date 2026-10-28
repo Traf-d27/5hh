@@ -171,13 +171,37 @@ function SimulatorResult({ result, measure }) {
 
   return (
     <div className="space-y-5 mt-6">
-      {/* Scenario label */}
-      <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200">
-        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-        <p className="text-xs text-amber-800 font-medium">
-          <strong>SCENARIO SIMULATION</strong> — This intervention has not been implemented.
-          All outputs are projected estimates based on illustrative assumptions, not verified measurements.
-        </p>
+      {/* 3-Tier Result Distinction (ML Forecast vs Scenario Estimate vs Verified Impact) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+        <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 text-slate-700">
+          <div className="font-extrabold uppercase text-[10px] tracking-wider text-slate-500 mb-1 flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-slate-500" />
+            Tier 1: ML Forecast Baseline
+          </div>
+          <p className="text-[11px] leading-relaxed">
+            Historical & calibrated baseline without intervention: <strong>{baselineVal?.toLocaleString("en-IN")} {unit}</strong> over {result.baseline?.periodDays} days.
+          </p>
+        </div>
+
+        <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
+          <div className="font-extrabold uppercase text-[10px] tracking-wider text-amber-700 mb-1 flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            Tier 2: Scenario Projected Estimate
+          </div>
+          <p className="text-[11px] leading-relaxed">
+            Hypothetical what-if reduction (-{reductionPct}%): <strong>{projectedVal?.toLocaleString("en-IN")} {unit}</strong>. Never presented as measured savings.
+          </p>
+        </div>
+
+        <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900">
+          <div className="font-extrabold uppercase text-[10px] tracking-wider text-emerald-700 mb-1 flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-emerald-600" />
+            Tier 3: Verified Measured Savings
+          </div>
+          <p className="text-[11px] leading-relaxed">
+            Logged post-retrofit via IPMVP Option B meter ledger on the <em>Impact Verification</em> tab.
+          </p>
+        </div>
       </div>
 
       {/* Side-by-side cards */}

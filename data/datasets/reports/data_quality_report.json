@@ -1,0 +1,102 @@
+{
+  "generated_at": "2026-10-28T08:55:47.281601Z",
+  "pipeline_version": "1.0.0",
+  "datasets_count": 5,
+  "status": "all_datasets_validated_and_cleaned",
+  "datasets": {
+    "uci_appliances": {
+      "id": "uci_appliances",
+      "raw_rows": 19735,
+      "clean_rows": 19735,
+      "missing_values_handled": 0,
+      "duplicate_timestamps_removed": 0,
+      "unit_conversions": [
+        "Appliances: Wh -> kWh (/1000)",
+        "lights: Wh -> kWh (/1000)"
+      ],
+      "time_range": [
+        "2016-01-11 17:00:00",
+        "2016-05-27 18:00:00"
+      ],
+      "target_variable": "energy_kwh",
+      "status": "validated_and_cleaned"
+    },
+    "unicon": {
+      "id": "unicon",
+      "raw_rows": 33997,
+      "clean_rows": 33997,
+      "missing_values_handled": 0,
+      "duplicate_timestamps_removed": 0,
+      "unit_conversions": [
+        "electricity: native kWh retained",
+        "water: native kL retained"
+      ],
+      "time_range": [
+        "2019-01-01 00:15:00",
+        "2019-12-30 23:45:00"
+      ],
+      "target_variable": "electricity_kwh",
+      "status": "validated_and_cleaned"
+    },
+    "bdg2": {
+      "id": "bdg2",
+      "raw_rows": 1296,
+      "clean_rows": 1296,
+      "missing_values_handled": 0,
+      "duplicate_timestamps_removed": 0,
+      "unit_conversions": [
+        "area: native sqm",
+        "energy intensity: kWh/sqm/year",
+        "peak demand: kW"
+      ],
+      "time_range": [
+        "Annualized",
+        "Building-level portfolio"
+      ],
+      "target_variable": "kwh_per_sqm / load_factor (for K-Means clustering)",
+      "status": "validated_and_cleaned"
+    },
+    "water_network": {
+      "id": "water_network",
+      "raw_rows": 8737,
+      "clean_rows": 8737,
+      "missing_values_handled": 16804,
+      "anomalies_detected": 6432,
+      "anomaly_ratio": 0.7362,
+      "unit_conversions": [
+        "hydraulic telemetry: power/flow sensor state in kW / L/s",
+        "fault status: mapped from ground truth fault_d7"
+      ],
+      "time_range": [
+        "2021-12-31 23:00:00",
+        "2022-12-30 23:00:00"
+      ],
+      "target_variable": "is_anomaly (binary ground truth)",
+      "status": "validated_and_cleaned"
+    },
+    "school_food_waste": {
+      "id": "school_food_waste",
+      "raw_rows": 155,
+      "clean_rows": 155,
+      "missing_values_handled": 2,
+      "pre_intervention_avg_g_per_diner": 48.0,
+      "post_intervention_avg_g_per_diner": 38.1,
+      "empirical_reduction_pct": 20.8,
+      "unit_conversions": [
+        "kitchen/plate waste: native kg summed to daily_waste_kg",
+        "waste per diner: grams/person"
+      ],
+      "time_range": [
+        "2024-08-08 00:00:00",
+        "2025-04-11 00:00:00"
+      ],
+      "target_variable": "daily_waste_kg / waste_per_diner_g",
+      "status": "validated_and_cleaned"
+    }
+  },
+  "leakage_prevention_standards": {
+    "time_series_splitting": "Chronological 80/20 train/test split without shuffling",
+    "scaling": "StandardScaler fit strictly on training split",
+    "transfer_learning_policy": "Explicit tag EXTERNAL_MODEL_ESTIMATE; campus references used for calibration only"
+  }
+}

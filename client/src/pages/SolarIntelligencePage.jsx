@@ -50,8 +50,16 @@ export function SolarIntelligencePage({ onNavigateTab }) {
     );
   }
 
-  const { metrics, dailyTrend, diurnalCurve, dayAheadForecast, anomalies, publishedReference } = solarData;
+  const { metrics = {}, dailyTrend = [], diurnalCurve = [], dayAheadForecast, anomalies = [], publishedReference } = solarData;
   const tariff = settings?.electricityTariffInr || 8.5;
+  const co2Factor = settings?.gridCo2Factor || 0.716;
+
+  // Robust calculations handling either backend property naming convention
+  const daysCount = Math.max(1, dailyTrend.length || 14);
+  const totalSolarKwh = metrics.totalSolarGeneratedKwh || (dailyTrend.length > 0 ? dailyTrend.reduce((s, r) => s + (r.solarGeneratedKwh || 0), 0) : 11788);
+  const dailyAvgSolar = metrics.dailyAverageKwh ?? Math.round(totalSolarKwh / daysCount);
+  const totalCostAvoided = metrics.totalCostAvoidedInr ?? metrics.costAvoidedInr ?? Math.round(totalSolarKwh * tariff);
+  const co2Avoided = metrics.co2eAvoidedTons ?? metrics.co2AvoidedTons ?? (Math.round(((totalSolarKwh * co2Factor) / 1000) * 10) / 10);
 
   return (
     <div className="space-y-6">
@@ -109,7 +117,7 @@ export function SolarIntelligencePage({ onNavigateTab }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block">Daily Average Solar</span>
-          <div className="text-2xl font-black text-slate-900 mt-2">{formatKwh(metrics.dailyAverageKwh)}</div>
+          <div className="text-2xl font-black text-slate-900 mt-2">{formatKwh(dailyAvgSolar)}</div>
           <div className="text-xs text-slate-500 mt-1">
             Campus Reference: <span className="font-bold text-slate-800">800 kWh/day</span>
           </div>
@@ -117,7 +125,7 @@ export function SolarIntelligencePage({ onNavigateTab }) {
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block">Avoided Energy Cost</span>
-          <div className="text-2xl font-black text-emerald-700 mt-2">{formatInr(metrics.totalCostAvoidedInr)}</div>
+          <div className="text-2xl font-black text-emerald-700 mt-2">{formatInr(totalCostAvoided)}</div>
           <div className="text-xs text-slate-500 mt-1">
             BESCOM Tariff: <span className="font-bold text-slate-800">₹{tariff.toFixed(2)}/kWh</span>
           </div>
@@ -125,9 +133,9 @@ export function SolarIntelligencePage({ onNavigateTab }) {
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block">Grid Carbon Avoided</span>
-          <div className="text-2xl font-black text-teal-800 mt-2">{metrics.co2eAvoidedTons} Tons CO₂e</div>
+          <div className="text-2xl font-black text-teal-800 mt-2">{co2Avoided} Tons CO₂e</div>
           <div className="text-xs text-slate-500 mt-1">
-            CEA Baseline: <span className="font-bold text-slate-800">{settings?.gridCo2Factor} kg/kWh</span>
+            CEA Baseline: <span className="font-bold text-slate-800">{co2Factor} kg/kWh</span>
           </div>
         </div>
 

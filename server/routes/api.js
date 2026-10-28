@@ -441,18 +441,40 @@ router.get("/solar", (req, res) => {
 // Water Intelligence Endpoint with optional ?blockId=
 router.get("/water", (req, res) => {
   const { blockId } = req.query;
+  const bId = blockId ? blockId.toUpperCase() : null;
   let waterDaily = presidencyStore.waterDailyReadings;
 
-  if (blockId) {
-    const bId = blockId.toUpperCase();
+  if (bId) {
     waterDaily = waterDaily.filter(r => r.blockId === bId);
   }
 
   const settings = presidencyStore.settings;
+  const stpRecords = presidencyStore.waterDailyReadings.filter(r => r.blockId === "STP");
+  const metricsSource = bId ? waterDaily : stpRecords;
+  const daysCount = Math.max(1, metricsSource.length);
 
-  const totalTreated = Math.round(waterDaily.reduce((s, r) => s + r.actualTreatedLitres, 0));
-  const totalReused = Math.round(waterDaily.reduce((s, r) => s + r.landscapeReuseLitres, 0));
+  const totalTreated = Math.round(metricsSource.reduce((s, r) => s + (r.actualTreatedLitres || 0), 0));
+  const totalReused = Math.round(metricsSource.reduce((s, r) => s + (r.landscapeReuseLitres || 0), 0));
+  const avgDailyTreatedLitres = Math.round(totalTreated / daysCount);
+  const avgDailyReusedLitres = Math.round(totalReused / daysCount);
+  const reuseEfficiencyPct = totalTreated > 0 ? Math.round((totalReused / totalTreated) * 100) : 0;
   const totalFinancialYieldInr = Math.round((totalReused / 1000) * settings.waterTariffInr);
+
+  const trendSource = bId ? waterDaily : stpRecords;
+  const dailyTrend = trendSource.map(r => ({
+    date: r.dateFormatted || r.date,
+    dateRaw: r.date,
+    treatedLitres: r.actualTreatedLitres,
+    actualTreatedLitres: r.actualTreatedLitres,
+    reusedLitres: r.landscapeReuseLitres,
+    landscapeReuseLitres: r.landscapeReuseLitres,
+    baselineTreatmentLitres: r.baselineTreatmentLitres,
+    reuseRatioPct: r.reuseRatioPct
+  }));
+
+  const waterAnomalies = presidencyStore.anomalies.filter(a =>
+    a.resourceType?.toLowerCase() === "water" && (!bId || a.blockId === bId)
+  );
 
   res.json({
     success: true,
@@ -460,13 +482,19 @@ router.get("/water", (req, res) => {
       metrics: {
         totalTreatedLitres: totalTreated,
         totalReusedLitres: totalReused,
-        reuseEfficiencyPct: totalTreated > 0 ? Math.round((totalReused / totalTreated) * 100) : 0,
+        avgDailyTreatedLitres,
+        avgDailyReusedLitres,
+        averageReuseRatioPct: reuseEfficiencyPct,
+        reuseEfficiencyPct,
         financialYieldInr: totalFinancialYieldInr,
+        estimatedCostSavingsInr: totalFinancialYieldInr,
         freshWaterAvoidedKl: Math.round(totalReused / 1000),
         pumpingCo2AvoidedTons: Math.round((((totalReused / 1000) * 0.45) / 1000) * 10) / 10,
         publishedTreatmentCapacityLitres: 300000
       },
+      dailyTrend,
       dailyReadings: waterDaily,
+      anomalies: waterAnomalies,
       publishedReference: PRESIDENCY_CAMPUS_META.publishedReferences.water
     }
   });
@@ -475,35 +503,59 @@ router.get("/water", (req, res) => {
 // Waste Intelligence Endpoint with optional ?blockId=
 router.get("/waste", (req, res) => {
   const { blockId } = req.query;
+  const bId = blockId ? blockId.toUpperCase() : null;
   let wasteDaily = presidencyStore.wasteDailyReadings;
 
-  if (blockId) {
-    const bId = blockId.toUpperCase();
+  if (bId) {
     wasteDaily = wasteDaily.filter(r => r.blockId === bId || bId === "FOOD");
   }
 
   const settings = presidencyStore.settings;
+  const daysCount = Math.max(1, wasteDaily.length);
 
-  const totalFoodWasteKg = Math.round(wasteDaily.reduce((s, r) => s + r.actualFoodWasteKg, 0));
-  const totalVermicompostedKg = Math.round(wasteDaily.reduce((s, r) => s + r.vermicompostedKg, 0));
-  const totalDivertedKg = Math.round(wasteDaily.reduce((s, r) => s + r.divertedFromLandfillKg, 0));
+  const totalFoodWasteKg = Math.round(wasteDaily.reduce((s, r) => s + (r.actualFoodWasteKg || 0), 0));
+  const totalVermicompostedKg = Math.round(wasteDaily.reduce((s, r) => s + (r.vermicompostedKg || 0), 0));
+  const totalDivertedKg = Math.round(wasteDaily.reduce((s, r) => s + (r.divertedFromLandfillKg || 0), 0));
+  const avgDailyFoodWasteKg = Math.round(totalFoodWasteKg / daysCount);
   const totalOrganicCompostProducedKg = Math.round(totalVermicompostedKg * 0.45);
   const financialYieldInr = Math.round(totalVermicompostedKg * settings.wasteCostInr);
+  const diversionRatePct = totalFoodWasteKg > 0 ? Math.round((totalVermicompostedKg / totalFoodWasteKg) * 100) : 0;
+  const avoidedMethaneCo2eKg = Math.round(totalVermicompostedKg * 1.9);
+  const methaneAvoidedTonsCo2e = Math.round((avoidedMethaneCo2eKg / 1000) * 10) / 10;
+
+  const dailyTrend = wasteDaily.map(r => ({
+    date: r.dateFormatted || r.date,
+    dateRaw: r.date,
+    foodWasteKg: r.actualFoodWasteKg,
+    actualFoodWasteKg: r.actualFoodWasteKg,
+    vermicompostedKg: r.vermicompostedKg,
+    divertedKg: r.divertedFromLandfillKg,
+    divertedFromLandfillKg: r.divertedFromLandfillKg,
+    baselineFoodWasteKg: r.baselineFoodWasteKg
+  }));
+
+  const wasteAnomalies = presidencyStore.anomalies.filter(a =>
+    a.resourceType?.toLowerCase() === "waste" && (!bId || a.blockId === bId || bId === "FOOD")
+  );
 
   res.json({
     success: true,
     data: {
       metrics: {
         totalFoodWasteKg,
+        avgDailyFoodWasteKg,
         totalVermicompostedKg,
         totalDivertedFromLandfillKg: totalDivertedKg,
-        diversionRatePct: totalFoodWasteKg > 0 ? Math.round((totalVermicompostedKg / totalFoodWasteKg) * 100) : 0,
+        diversionRatePct,
         organicCompostProducedKg: totalOrganicCompostProducedKg,
-        methaneAvoidedTonsCo2e: Math.round(((totalVermicompostedKg * 1.9) / 1000) * 10) / 10,
+        avoidedMethaneCo2eKg,
+        methaneAvoidedTonsCo2e,
         financialSavingsInr: financialYieldInr,
         publishedFoodWasteRange: "120 - 150 kg/day"
       },
+      dailyTrend,
       dailyReadings: wasteDaily,
+      anomalies: wasteAnomalies,
       publishedReference: PRESIDENCY_CAMPUS_META.publishedReferences.waste
     }
   });

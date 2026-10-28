@@ -81,7 +81,7 @@ export function CampusProvider({ children }) {
   // Fetch Solar (supports ?blockId=)
   const fetchSolar = useCallback(async () => {
     try {
-      const query = selectedBlockId !== "all" ? `?blockId=${selectedBlockId}` : "";
+      const query = selectedBlockId && selectedBlockId !== "all" ? `?blockId=${selectedBlockId}` : "";
       const res = await fetch(`/api/solar${query}`);
       const json = await res.json();
       if (json.success) setSolarData(json.data);
@@ -93,7 +93,7 @@ export function CampusProvider({ children }) {
   // Fetch Water (supports ?blockId=)
   const fetchWater = useCallback(async () => {
     try {
-      const query = selectedBlockId !== "all" ? `?blockId=${selectedBlockId}` : "";
+      const query = selectedBlockId && selectedBlockId !== "all" ? `?blockId=${selectedBlockId}` : "";
       const res = await fetch(`/api/water${query}`);
       const json = await res.json();
       if (json.success) setWaterData(json.data);
@@ -105,7 +105,7 @@ export function CampusProvider({ children }) {
   // Fetch Waste (supports ?blockId=)
   const fetchWaste = useCallback(async () => {
     try {
-      const query = selectedBlockId !== "all" ? `?blockId=${selectedBlockId}` : "";
+      const query = selectedBlockId && selectedBlockId !== "all" ? `?blockId=${selectedBlockId}` : "";
       const res = await fetch(`/api/waste${query}`);
       const json = await res.json();
       if (json.success) setWasteData(json.data);
@@ -128,7 +128,7 @@ export function CampusProvider({ children }) {
   // Fetch Inefficiencies (supports ?blockId=)
   const fetchInefficiencies = useCallback(async () => {
     try {
-      const query = selectedBlockId !== "all" ? `?blockId=${selectedBlockId}` : "";
+      const query = selectedBlockId && selectedBlockId !== "all" ? `?blockId=${selectedBlockId}` : "";
       const res = await fetch(`/api/anomalies${query}`);
       const json = await res.json();
       if (json.success) setAnomalies(json.data);
@@ -140,7 +140,7 @@ export function CampusProvider({ children }) {
   // Fetch Recommendations (supports ?blockId=)
   const fetchRecommendations = useCallback(async () => {
     try {
-      const query = selectedBlockId !== "all" ? `?blockId=${selectedBlockId}` : "";
+      const query = selectedBlockId && selectedBlockId !== "all" ? `?blockId=${selectedBlockId}` : "";
       const res = await fetch(`/api/recommendations${query}`);
       const json = await res.json();
       if (json.success) setRecommendations(json.data);
@@ -288,12 +288,15 @@ export function CampusProvider({ children }) {
         wasteData,
         facilities,
         blocks,
+        buildings: blocks,
         anomalies,
         recommendations,
         actions,
         settings,
         selectedBlockId,
         setSelectedBlockId,
+        selectedBuilding: selectedBlockId,
+        setSelectedBuilding: setSelectedBlockId,
         userRole,
         setUserRole,
         userBlockId,

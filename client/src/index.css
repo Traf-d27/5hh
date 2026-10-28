@@ -25,9 +25,9 @@ code, pre {
 
 /* Glassmorphism & Custom Accents */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid rgba(226, 232, 240, 0.9);
 }
 
 .glass-panel-emerald {
@@ -60,4 +60,40 @@ code, pre {
 
 .anomaly-pulse {
   animation: softPulse 2.5s infinite ease-in-out;
+}
+
+/* Premium Card Spotlight & Micro-Interactions */
+.interactive-card {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+}
+
+.interactive-card:hover {
+  transform: translateY(-2.5px);
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.03);
+}
+
+/* Button Micro-interactions */
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Reduced Motion & Touch Devices */
+@media (prefers-reduced-motion: reduce) {
+  .interactive-card,
+  .interactive-card:hover,
+  .anomaly-pulse,
+  button:active {
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (hover: none) {
+  .interactive-card:hover {
+    transform: none !important;
+  }
+  .spotlight-card:before {
+    display: none !important;
+  }
 }

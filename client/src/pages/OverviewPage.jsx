@@ -23,16 +23,33 @@ import {
   PlusCircle,
   Zap,
   Radio,
-  FileText
+  FileText,
+  Download,
+  MapPin
 } from "lucide-react";
 import { useCampus } from "../context/CampusContext";
 import { formatInr, formatKwh } from "../utils/formatters";
 import { BlockImage } from "../components/BlockImage";
+import { SpotlightCard } from "../components/SpotlightCard";
+import { InteractiveCampusChart } from "../components/InteractiveCampusChart";
+import { MvReportModal } from "../components/MvReportModal";
+import { generateMvReportCsv } from "../utils/mvReportGenerator";
 
 export function OverviewPage({ onNavigateTab, onSelectBlock }) {
-  const { overviewData, blocks, showToast } = useCampus();
+  const { 
+    overviewData, 
+    solarData, 
+    waterData, 
+    wasteData, 
+    actions, 
+    blocks = [], 
+    settings = {}, 
+    showToast 
+  } = useCampus();
+
   const [activeFilter, setActiveFilter] = useState("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isMvModalOpen, setIsMvModalOpen] = useState(false);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -43,6 +60,17 @@ export function OverviewPage({ onNavigateTab, onSelectBlock }) {
     }, 800);
   };
 
+  const handleExportMv = () => {
+    try {
+      generateMvReportCsv({ overviewData, blocks, actions, settings });
+      setIsMvModalOpen(true);
+      showToast("Generated & downloaded IPMVP Option B M&V Audit CSV Report.", "success");
+    } catch (e) {
+      console.error(e);
+      setIsMvModalOpen(true);
+    }
+  };
+
   const filterOptions = [
     { id: "all", label: "All Blocks (9)" },
     { id: "admin", label: "Admin & Academic Courtyard" },
@@ -50,7 +78,7 @@ export function OverviewPage({ onNavigateTab, onSelectBlock }) {
     { id: "food", label: "Student Mess & Dining Pavilion" }
   ];
 
-  // Map blocks to the 3 featured card clusters from the reference screenshot
+  // Map blocks to the 3 featured card clusters
   const featuredCards = [
     {
       id: "CSE",
@@ -105,7 +133,7 @@ export function OverviewPage({ onNavigateTab, onSelectBlock }) {
     }
   ];
 
-  // Benchmarking table rows from reference screenshot
+  // Benchmarking table rows
   const tableRows = [
     {
       id: "ADMIN",
@@ -118,35 +146,54 @@ export function OverviewPage({ onNavigateTab, onSelectBlock }) {
       solarHighlight: true,
       dailyEnergy: "1,420 kWh",
       waterReuse: "145 kL / d",
-      wasteDiverted: "42 kg / d",
+      wasteDiverted: "12 kg / d",
       peakLoad: "285 kW",
       ratingLabel: "A+",
-      ratingScore: 92,
+      ratingScore: 94,
       ratingBadge: "bg-emerald-100 text-emerald-800 border-emerald-300"
     },
     {
       id: "CSE",
-      avatarLetter: "E",
-      avatarBg: "bg-blue-100 text-blue-800 border-blue-300",
-      name: "Academic Courtyard & School of Engineering",
-      subCode: "PU-ENG-01 • Academic Quad Intertie",
-      area: "32,800 m²",
-      solarKwp: "140 kWp",
-      dailyEnergy: "2,850 kWh",
-      waterReuse: "210 kL / d",
-      wasteDiverted: "85 kg / d",
-      peakLoad: "540 kW",
+      avatarLetter: "C",
+      avatarBg: "bg-cyan-100 text-cyan-800 border-cyan-300",
+      name: "Computer Science & IT Block",
+      subCode: "PU-CSE-02 • Lab Feeder A",
+      area: "14,200 m²",
+      solarKwp: "—",
+      solarHighlight: false,
+      dailyEnergy: "1,680 kWh",
+      waterReuse: "85 kL / d",
+      wasteDiverted: "18 kg / d",
+      peakLoad: "310 kW",
       peakAlert: true,
-      ratingLabel: "A",
-      ratingScore: 88,
-      ratingBadge: "bg-blue-100 text-blue-800 border-blue-300"
+      ratingLabel: "B+",
+      ratingScore: 82,
+      ratingBadge: "bg-amber-100 text-amber-800 border-amber-300"
+    },
+    {
+      id: "ENGG",
+      avatarLetter: "E",
+      avatarBg: "bg-slate-100 text-slate-800 border-slate-300",
+      name: "Engineering Labs Complex",
+      subCode: "PU-ENG-03 • Heavy Power #2",
+      area: "22,100 m²",
+      solarKwp: "—",
+      solarHighlight: false,
+      dailyEnergy: "2,150 kWh",
+      waterReuse: "110 kL / d",
+      wasteDiverted: "24 kg / d",
+      peakLoad: "420 kW",
+      peakAlert: true,
+      ratingLabel: "B",
+      ratingScore: 78,
+      ratingBadge: "bg-amber-100 text-amber-800 border-amber-300"
     },
     {
       id: "LIB",
       avatarLetter: "L",
       avatarBg: "bg-teal-100 text-teal-800 border-teal-300",
-      name: "Central Library & Knowledge Hub",
-      subCode: "PU-LIB-01 • Smart Lighting Automation",
+      name: "Central University Library & Hub",
+      subCode: "PU-LIB-04 • Daylight Auto Feeder",
       area: "8,600 m²",
       solarKwp: "30 kWp",
       dailyEnergy: "195 kWh",
@@ -160,7 +207,7 @@ export function OverviewPage({ onNavigateTab, onSelectBlock }) {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
+    <div className="space-y-7 animate-fade-in pb-12">
       {/* ─── 1. BREADCRUMBS & SECTION TITLE ─────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
@@ -221,54 +268,55 @@ export function OverviewPage({ onNavigateTab, onSelectBlock }) {
         })}
       </div>
 
-      {/* ─── 2. MAIN CAMPUS HERO CARD (CENTRAL GATEWAY) ────────────────────────── */}
-      <div className="relative rounded-3xl overflow-hidden bg-slate-950 text-white shadow-lg border border-slate-800/80">
-        {/* Background Image with Dark Teal Gradient Overlay */}
+      {/* ─── 2. MAIN CAMPUS HERO CARD (PRESIDENCY UNIVERSITY CENTRAL GATEWAY) ────────────────── */}
+      <div className="relative rounded-3xl overflow-hidden bg-slate-950 text-white shadow-xl border border-slate-800 group">
+        {/* Background Image: High-Definition Presidency University Campus Entrance */}
         <div className="absolute inset-0">
           <BlockImage
             imagePath="/blocks/CAMPUS_HERO.jpg"
             blockName="Presidency University Bengaluru Central Campus"
             category="Administrative"
             aspectRatio="aspect-auto"
-            className="w-full h-full object-cover opacity-35"
+            className="w-full h-full object-cover opacity-85 group-hover:scale-101 transition-transform duration-700"
             showCredit={false}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-teal-950/70" />
+          {/* Subtle Bottom & Edge Gradient for Optimal Contrast */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/65 to-slate-900/25" />
         </div>
 
         {/* Content Layer */}
         <div className="relative z-10 p-6 md:p-8 space-y-6">
-          {/* Top Badges */}
+          {/* Top Badges & Live Pin */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
-                FLAGSHIP INFRASTRUCTURE
+              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/25 text-emerald-300 border border-emerald-400/40 backdrop-blur-md">
+                PRESIDENCY UNIVERSITY MAIN CAMPUS
               </span>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white/10 text-slate-300 border border-white/15">
-                BLOCK ID: PU-ADM-01
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-black/40 text-slate-300 border border-white/20 backdrop-blur-md">
+                YELAHANKA, BENGALURU • 64 ACRES
               </span>
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-800 text-[11px] font-medium text-slate-300">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/85 backdrop-blur-md border border-slate-700/80 text-[11px] font-medium text-slate-300">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>Live: <strong>801 kW</strong> Invertion</span>
               <span className="text-slate-600">|</span>
-              <span className="text-emerald-400 font-bold">Grid Synced: OK</span>
+              <span className="text-emerald-400 font-bold">BESCOM 11kV Synced</span>
             </div>
           </div>
 
           {/* Title & Description & CTA */}
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 max-w-4xl">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 max-w-5xl">
             <div className="space-y-2">
               <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
                 <Radio className="w-3.5 h-3.5" />
-                CENTRAL CAMPUS MICROGRID SUBSTATION
+                CENTRAL GATEWAY • CEREMONIAL FOUNTAIN & MICROGRID INCOMING FEEDER
               </div>
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-sm">
                 Presidency University — Central Campus & Main Administration Gateway
               </h2>
-              <p className="text-xs md:text-sm text-slate-300 leading-relaxed max-w-2xl font-normal">
-                Central campus gateway featuring the grand ceremonial fountain plaza, deanery wings, and central microgrid monitoring node. Integrated with 220 kWp solar PV canopy arrays and high-voltage grid interconnection.
+              <p className="text-xs md:text-sm text-slate-200 leading-relaxed max-w-2xl font-normal drop-shadow-xs">
+                Aerial perspective of the central ceremonial fountain plaza, landscaped green lawns irrigated with recycled SBR wastewater, and the grand academic deanery gateway. Connected to 220 kWp rooftop solar arrays and intelligent sub-meter telemetry.
               </p>
             </div>
 
@@ -283,11 +331,11 @@ export function OverviewPage({ onNavigateTab, onSelectBlock }) {
               </button>
 
               <button
-                onClick={() => onSelectBlock && onSelectBlock("ADMIN")}
-                className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs border border-white/20 backdrop-blur-md flex items-center justify-center gap-2 transition-all cursor-pointer"
+                onClick={handleExportMv}
+                className="px-4 py-3 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs border border-white/25 backdrop-blur-md flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
-                <FileText className="w-4 h-4 text-slate-300" />
-                <span>Inverter Logs</span>
+                <Download className="w-4 h-4 text-emerald-300" />
+                <span>Export M&V Report</span>
               </button>
             </div>
           </div>
@@ -295,54 +343,62 @@ export function OverviewPage({ onNavigateTab, onSelectBlock }) {
           {/* Bottom KPI Tiles Strip (6 Tiles inside hero) */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-3">
             {/* Tile 1 */}
-            <div className="p-3 rounded-2xl bg-slate-900/60 backdrop-blur-md border border-slate-800/80">
+            <div className="p-3.5 rounded-2xl bg-slate-900/75 backdrop-blur-md border border-slate-800">
               <div className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">SOLAR ARRAY</div>
               <div className="text-xl font-black text-emerald-400 mt-0.5">220 kWp</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Rooftop Biaxial</div>
+              <div className="text-[10px] text-slate-300 mt-0.5">Rooftop Biaxial</div>
             </div>
 
             {/* Tile 2 */}
-            <div className="p-3 rounded-2xl bg-slate-900/60 backdrop-blur-md border border-slate-800/80">
+            <div className="p-3.5 rounded-2xl bg-slate-900/75 backdrop-blur-md border border-slate-800">
               <div className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">GENERATION TODAY</div>
               <div className="text-xl font-black text-white mt-0.5">842 kWh</div>
               <div className="text-[10px] text-emerald-400 font-semibold mt-0.5">▲ +8.4% vs Baseline</div>
             </div>
 
             {/* Tile 3 */}
-            <div className="p-3 rounded-2xl bg-slate-900/60 backdrop-blur-md border border-slate-800/80">
-              <div className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">PERFORMANCE RATIO</div>
-              <div className="text-xl font-black text-white mt-0.5">PR 0.74</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Target: 0.80</div>
+            <div className="p-3.5 rounded-2xl bg-slate-900/75 backdrop-blur-md border border-slate-800">
+              <div className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">STP TREATED EFFLUENT</div>
+              <div className="text-xl font-black text-cyan-300 mt-0.5">300 kL / d</div>
+              <div className="text-[10px] text-slate-300 mt-0.5">88% Turf Irrigation</div>
             </div>
 
             {/* Tile 4 */}
-            <div className="p-3 rounded-2xl bg-slate-900/60 backdrop-blur-md border border-slate-800/80">
-              <div className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">HT CONNECTION</div>
-              <div className="text-xl font-black text-white mt-0.5">11 kV</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">BESCOM Intertie</div>
+            <div className="p-3.5 rounded-2xl bg-slate-900/75 backdrop-blur-md border border-slate-800">
+              <div className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">FOOD COMPOSTING</div>
+              <div className="text-xl font-black text-amber-300 mt-0.5">141 kg / d</div>
+              <div className="text-[10px] text-slate-300 mt-0.5">120-150 kg Reference</div>
             </div>
 
             {/* Tile 5 */}
-            <div className="p-3 rounded-2xl bg-slate-900/60 backdrop-blur-md border border-slate-800/80">
-              <div className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">ENERGY CONSUMED</div>
-              <div className="text-xl font-black text-white mt-0.5">1,420 kWh/d</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Daily Avg Run</div>
+            <div className="p-3.5 rounded-2xl bg-slate-900/75 backdrop-blur-md border border-slate-800">
+              <div className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">HT INTERTIE</div>
+              <div className="text-xl font-black text-white mt-0.5">11 kV</div>
+              <div className="text-[10px] text-slate-300 mt-0.5">BESCOM Substation</div>
             </div>
 
             {/* Tile 6 */}
-            <div className="p-3 rounded-2xl bg-slate-900/60 backdrop-blur-md border border-rose-900/50">
+            <div className="p-3.5 rounded-2xl bg-slate-900/75 backdrop-blur-md border border-rose-900/60">
               <div className="text-[9px] font-bold uppercase text-rose-400 tracking-wider flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3 text-rose-400" />
-                ANOMALY
+                ACTIVE ALERTS
               </div>
-              <div className="text-xl font-black text-rose-400 mt-0.5">-18.2%</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Soiling Alert</div>
+              <div className="text-xl font-black text-rose-400 mt-0.5">3 Flagged</div>
+              <div className="text-[10px] text-slate-300 mt-0.5">AC / Leak / Waste</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ─── 3. ACTIVE CAMPUS BLOCKS PORTFOLIO (3-COLUMN CARDS) ─────────────────── */}
+      {/* ─── 3. INTERACTIVE CAMPUS TELEMETRY & CROSS-RESOURCE GRAPH ─────────────── */}
+      <InteractiveCampusChart 
+        solarData={solarData} 
+        waterData={waterData} 
+        wasteData={wasteData} 
+        onNavigateTab={onNavigateTab} 
+      />
+
+      {/* ─── 4. ACTIVE CAMPUS BLOCKS PORTFOLIO (3-COLUMN CARDS WITH SPOTLIGHT) ───── */}
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
           <div>
@@ -354,16 +410,16 @@ export function OverviewPage({ onNavigateTab, onSelectBlock }) {
             <h2 className="text-xl font-black text-slate-900 tracking-tight">Active Campus Blocks Portfolio</h2>
           </div>
           <span className="text-[11px] text-slate-400 font-medium">
-            Click any block card to highlight live telemetry diagnostics & sub-meter breakdown.
+            Hover cards for cursor spotlight. Click any block card to highlight live sub-meter telemetry.
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {featuredCards.map((card) => (
-            <div
+            <SpotlightCard
               key={card.id}
               onClick={() => onSelectBlock && onSelectBlock(card.id)}
-              className="group bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs hover:shadow-md hover:border-slate-300 transition-all cursor-pointer flex flex-col justify-between"
+              className="bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:border-emerald-300 flex flex-col justify-between cursor-pointer"
             >
               {/* Card Image with Badges & Title Overlay */}
               <div className="relative aspect-video w-full overflow-hidden bg-slate-900">
@@ -371,7 +427,7 @@ export function OverviewPage({ onNavigateTab, onSelectBlock }) {
                   imagePath={card.image}
                   blockName={card.title}
                   category={card.zone}
-                  className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
+                  className="w-full h-full object-cover group-hover:scale-104 transition-transform duration-500"
                   showCredit={false}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
@@ -422,19 +478,19 @@ export function OverviewPage({ onNavigateTab, onSelectBlock }) {
 
               {/* Card Footer Button */}
               <div className="px-4 py-3 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-700 group-hover:text-slate-900">
+                <span className="text-xs font-bold text-slate-700 group-hover:text-emerald-700 transition-colors">
                   Inspect Sub-meters
                 </span>
                 <div className="w-6 h-6 rounded-full bg-emerald-500 group-hover:bg-emerald-600 text-white flex items-center justify-center transition-all shadow-xs">
                   <ArrowRight className="w-3.5 h-3.5" />
                 </div>
               </div>
-            </div>
+            </SpotlightCard>
           ))}
         </div>
       </div>
 
-      {/* ─── 4. BLOCK TELEMETRY BENCHMARKING TABLE ───────────────────────────────── */}
+      {/* ─── 5. BLOCK TELEMETRY BENCHMARKING TABLE ───────────────────────────────── */}
       <div className="bg-white rounded-3xl border border-slate-200/90 p-6 shadow-xs space-y-4">
         {/* Table Header Row */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -452,11 +508,11 @@ export function OverviewPage({ onNavigateTab, onSelectBlock }) {
               ISO 50001 Calibrated
             </span>
             <button
-              onClick={() => showToast("Downloading aggregated CSV raw telemetry dump...", "info")}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 transition-colors"
+              onClick={handleExportMv}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 transition-colors cursor-pointer"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-slate-500" />
-              <span>CSV Raw Dump</span>
+              <span>Export Audit CSV</span>
             </button>
           </div>
         </div>
@@ -547,7 +603,7 @@ export function OverviewPage({ onNavigateTab, onSelectBlock }) {
         </div>
       </div>
 
-      {/* ─── 5. CAMPUS EXPANSION PROTOCOL BANNER (BOTTOM) ────────────────────────── */}
+      {/* ─── 6. CAMPUS EXPANSION PROTOCOL BANNER (BOTTOM) ────────────────────────── */}
       <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-teal-950 via-slate-950 to-emerald-950 text-white p-8 border border-teal-900/50 shadow-xl">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
@@ -581,6 +637,12 @@ export function OverviewPage({ onNavigateTab, onSelectBlock }) {
           </div>
         </div>
       </div>
+
+      {/* Full M&V Report Modal */}
+      <MvReportModal 
+        isOpen={isMvModalOpen} 
+        onClose={() => setIsMvModalOpen(false)} 
+      />
     </div>
   );
 }

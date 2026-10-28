@@ -14,9 +14,13 @@ import {
 import { useCampus } from "../context/CampusContext";
 import { TariffModal } from "./TariffModal";
 import { DiscrepancyModal } from "./DiscrepancyModal";
+import { MvReportModal } from "./MvReportModal";
+import { generateMvReportCsv } from "../utils/mvReportGenerator";
 
 export function Navbar({ onNavigateTab }) {
   const { 
+    overviewData,
+    actions,
     blocks, 
     selectedBlockId, 
     setSelectedBlockId, 
@@ -33,14 +37,20 @@ export function Navbar({ onNavigateTab }) {
   const [isDiscrepancyModalOpen, setIsDiscrepancyModalOpen] = useState(false);
   const [isBlockDropdownOpen, setIsBlockDropdownOpen] = useState(false);
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
+  const [isMvModalOpen, setIsMvModalOpen] = useState(false);
 
   const selectedBlock = blocks?.find(b => b.id === selectedBlockId);
 
   const handleExportReport = () => {
-    showToast("Generating comprehensive IPMVP Option B Campus Sustainability M&V Report (PDF/CSV)...", "info");
-    setTimeout(() => {
-      showToast("Campus M&V Report downloaded successfully.", "success");
-    }, 1200);
+    try {
+      generateMvReportCsv({ overviewData, blocks, actions, settings });
+      setIsMvModalOpen(true);
+      showToast("Generated & downloaded IPMVP Option B M&V Audit CSV Report.", "success");
+    } catch (err) {
+      console.error(err);
+      setIsMvModalOpen(true);
+      showToast("Opening M&V Audit Report preview...", "info");
+    }
   };
 
   return (
@@ -172,6 +182,7 @@ export function Navbar({ onNavigateTab }) {
       {/* Modals */}
       <TariffModal isOpen={isTariffModalOpen} onClose={() => setIsTariffModalOpen(false)} />
       <DiscrepancyModal isOpen={isDiscrepancyModalOpen} onClose={() => setIsDiscrepancyModalOpen(false)} />
+      <MvReportModal isOpen={isMvModalOpen} onClose={() => setIsMvModalOpen(false)} />
     </>
   );
 }

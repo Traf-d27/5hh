@@ -15,18 +15,32 @@ import { useCampus } from "../context/CampusContext";
 import { formatInr, formatKwh, formatDateOnly } from "../utils/formatters";
 import { StatusBadge } from "../components/Badge";
 import { VerifyReadingModal } from "../components/VerifyReadingModal";
+import { MvReportModal } from "../components/MvReportModal";
+import { generateMvReportCsv } from "../utils/mvReportGenerator";
+import { Download } from "lucide-react";
 
 export function ImpactVerificationPage() {
-  const { actions, settings } = useCampus();
+  const { actions, settings, overviewData, blocks = [], showToast } = useCampus();
   const [selectedActionForVerify, setSelectedActionForVerify] = useState(null);
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+  const [isMvModalOpen, setIsMvModalOpen] = useState(false);
 
   const tariff = settings?.electricityTariffInr || 8.5;
   const co2Factor = settings?.gridCo2Factor || 0.716;
 
-  const resolvedActions = actions.filter(a => a.status === "Resolved");
+  const resolvedActions = (actions || []).filter(a => a.status === "Resolved");
   const totalVerifiedInr = resolvedActions.reduce((s, a) => s + (a.verifiedInrSavings || 0), 0);
-  const totalPotentialInr = actions.reduce((s, a) => s + (a.potentialInrSavings || 0), 0);
+  const totalPotentialInr = (actions || []).reduce((s, a) => s + (a.potentialInrSavings || 0), 0);
+
+  const handleExportCsv = () => {
+    try {
+      generateMvReportCsv({ overviewData, blocks, actions, settings });
+      showToast("IPMVP Option B M&V CSV Report downloaded.", "success");
+    } catch (e) {
+      console.error(e);
+      showToast("Failed to download CSV.", "error");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -47,6 +61,23 @@ export function ImpactVerificationPage() {
             <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
               In accordance with international M&V standards, savings are never assumed. Every realized figure below represents an empirically verified intervention supported by before-and-after meter logging.
             </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleExportCsv}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Download CSV</span>
+            </button>
+            <button
+              onClick={() => setIsMvModalOpen(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Full Audit Report</span>
+            </button>
           </div>
         </div>
       </div>
@@ -164,6 +195,12 @@ export function ImpactVerificationPage() {
         isOpen={isVerifyModalOpen}
         onClose={() => setIsVerifyModalOpen(false)}
         action={selectedActionForVerify}
+      />
+
+      {/* Full M&V Audit Modal */}
+      <MvReportModal
+        isOpen={isMvModalOpen}
+        onClose={() => setIsMvModalOpen(false)}
       />
     </div>
   );

@@ -11,6 +11,8 @@ import { WaterIntelligencePage } from "./pages/WaterIntelligencePage";
 import { WasteIntelligencePage } from "./pages/WasteIntelligencePage";
 import { InefficienciesPage } from "./pages/InefficienciesPage";
 import { RecommendationsPage } from "./pages/RecommendationsPage";
+import { InterventionSimulatorPage } from "./pages/InterventionSimulatorPage";
+import { MLIntelligencePage } from "./pages/MLIntelligencePage";
 import { ActionTrackerPage } from "./pages/ActionTrackerPage";
 import { ImpactVerificationPage } from "./pages/ImpactVerificationPage";
 import { DataManagementPage } from "./pages/DataManagementPage";
@@ -38,6 +40,8 @@ export default function App() {
               {currentTab === "waste" && <WasteIntelligencePage onNavigateTab={setCurrentTab} />}
               {currentTab === "inefficiencies" && <InefficienciesPage onNavigateTab={setCurrentTab} />}
               {currentTab === "recommendations" && <RecommendationsPage onNavigateTab={setCurrentTab} />}
+              {currentTab === "simulator" && <InterventionSimulatorPage onNavigateTab={setCurrentTab} />}
+              {currentTab === "ml" && <MLIntelligencePage onNavigateTab={setCurrentTab} />}
               {currentTab === "actions" && <ActionTrackerPage />}
               {currentTab === "impact" && <ImpactVerificationPage />}
               {currentTab === "data" && <DataManagementPage />}

@@ -16,6 +16,28 @@ app.use(express.json());
 // API Routes
 app.use("/api", apiRouter);
 
+// Proxy ML requests to Python ML service on port 5002
+app.use("/ml", async (req, res) => {
+  try {
+    const mlUrl = `http://localhost:5002/ml${req.url}`;
+    const options = {
+      method: req.method,
+      headers: { "Content-Type": "application/json" }
+    };
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      options.body = JSON.stringify(req.body);
+    }
+    const response = await fetch(mlUrl, options);
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (err) {
+    res.status(502).json({
+      success: false,
+      error: "ML service on port 5002 unreachable: " + err.message
+    });
+  }
+});
+
 // Health check
 app.get("/health", (req, res) => {
   res.json({

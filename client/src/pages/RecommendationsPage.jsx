@@ -9,7 +9,8 @@ import {
   ArrowRight,
   Sparkles,
   Layers,
-  Leaf
+  Leaf,
+  Sliders
 } from "lucide-react";
 import { useCampus } from "../context/CampusContext";
 import { formatInr, formatKwh } from "../utils/formatters";
@@ -167,10 +168,17 @@ export function RecommendationsPage({ onNavigateTab }) {
                   </div>
                 </div>
 
-                <div className="pt-2">
+                <div className="pt-2 space-y-2">
+                  <button
+                    onClick={() => onNavigateTab && onNavigateTab("simulator")}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white font-bold text-xs shadow-md shadow-violet-600/20 transition-all"
+                  >
+                    <Sliders className="w-3.5 h-3.5" />
+                    <span>Simulate & Predict Impact (What-If)</span>
+                  </button>
                   <button
                     onClick={() => handleLaunchPlan(rec)}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs shadow-lg shadow-emerald-600/25 transition-all"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs shadow-md shadow-emerald-600/25 transition-all"
                   >
                     <span>Initiate Tracked Campus Action</span>
                     <ArrowRight className="w-4 h-4" />

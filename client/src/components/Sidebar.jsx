@@ -10,7 +10,9 @@ import {
   Award, 
   FileSpreadsheet,
   Leaf,
-  Layers
+  Layers,
+  Sliders,
+  Brain
 } from "lucide-react";
 import { useCampus } from "../context/CampusContext";
 
@@ -61,6 +63,20 @@ export function Sidebar({ currentTab, onSelectTab }) {
       icon: Lightbulb,
       badge: "KlimaTwin",
       badgeColor: "bg-teal-500/20 text-teal-300"
+    },
+    {
+      id: "simulator",
+      label: "Intervention Simulator",
+      icon: Sliders,
+      badge: "What-If ML",
+      badgeColor: "bg-violet-500/20 text-violet-300 border border-violet-400/30"
+    },
+    {
+      id: "ml",
+      label: "ML Intelligence",
+      icon: Brain,
+      badge: "Scikit-Learn",
+      badgeColor: "bg-purple-500/20 text-purple-300 border border-purple-400/30"
     },
     {
       id: "actions",
